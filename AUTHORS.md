@@ -1,3 +1,4 @@
 NOM, PRENOM, NUMERO ETUDIANT, PSEUDO SUR GITLAB
 HUYNH, Minh Van Claude, 22203541, HUYNH minh van claude
 CHEN, Michel, 22202655, CHEN michel
+ROIG, Lucas, 22216115, ROIG lucas
