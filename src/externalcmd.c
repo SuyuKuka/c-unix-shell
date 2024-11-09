@@ -1,0 +1,35 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+int externalcmd(char *const argv[]) {
+    pid_t pid = fork();
+    int * status;
+
+    if (pid == -1) {
+        perror("Erreur de fork");
+        return EXIT_FAILURE;
+    } else if (pid == 0) {
+        if (execvp(argv[0], argv) == -1) {
+            perror(argv[0]);
+            perror(": command not found");
+            return EXIT_FAILURE;
+        }
+    } else {
+        waitpid(pid, status, 0);
+    }
+
+    return EXIT_SUCCESS;
+}
+
+int main(int argc, char* argv) {
+    char * test[] = {"ls", "-l", NULL};
+
+    if (externalcmd(test) == -1) {
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
