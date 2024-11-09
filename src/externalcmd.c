@@ -4,9 +4,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-int externalcmd(char *const argv[]) {
+int externalcmd(char * argv[]) {
     pid_t pid = fork();
-    int * status;
 
     if (pid == -1) {
         perror("Erreur de fork");
@@ -18,14 +17,15 @@ int externalcmd(char *const argv[]) {
             return EXIT_FAILURE;
         }
     } else {
+        int * status;
         waitpid(pid, status, 0);
     }
 
     return EXIT_SUCCESS;
 }
 
-int main(int argc, char* argv) {
-    char * test[] = {"ls", "-l", NULL};
+int main() {
+    char * test[] = {"ls", "-l", "../", NULL};
 
     if (externalcmd(test) == -1) {
         return EXIT_FAILURE;
