@@ -21,8 +21,8 @@ int ftype(char ** argv) {
             write(STDOUT_FILENO,"other\n", 6);
         }
     } else {
-        write(STDOUT_FILENO, argv[1], strlen(argv[1]));
-        write(STDOUT_FILENO, ": invalid path", 6);
+        write(STDOUT_FILENO, argv[0], strlen(argv[0]));
+        write(STDOUT_FILENO, ": invalid path\n", 15);
         return EXIT_FAILURE;
     }
     
