@@ -3,11 +3,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 
-int ftype(char * argv) {
+int ftype(char ** argv) {
     struct stat s;
 
-    if (stat(argv, &s) == 0) {
+    if (stat(argv[0], &s) == 0) {
         if (S_ISDIR(s.st_mode)) {
             write(STDOUT_FILENO, "directory\n", 10);
         } else if(S_ISREG(s.st_mode)) {
@@ -20,18 +21,19 @@ int ftype(char * argv) {
             write(STDOUT_FILENO,"other\n", 6);
         }
     } else {
-        write(STDOUT_FILENO, "\n", 6);
-        return 1;
+        write(STDOUT_FILENO, argv[1], strlen(argv[1]));
+        write(STDOUT_FILENO, ": invalid path", 6);
+        return EXIT_FAILURE;
     }
     
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char ** argv) {
     if (argc < 2) {
         write(STDOUT_FILENO, "Not enough argument\n", 20);
-        return 1;
+        return EXIT_FAILURE;
     }
 
-    return ftype(argv[1]);
+    return ftype(argv + 1);
 }
