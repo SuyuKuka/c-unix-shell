@@ -4,7 +4,17 @@
 #include <string.h>
 #include "pwd.h"
 
-int pwd() {
+int pwd(cmd_info * cmd) {
+    if (strlen(cmd -> opt) == 0 && strlen(cmd -> args) == 0) {
+        return redirect_pwd(STDOUT_FILENO);
+    } else {
+        char * error = "Too many options or arguments.\n";
+        write(STDOUT_FILENO, error, strlen(error));
+        return 1;
+    }
+}
+
+int redirect_pwd(int output) {
     char * pwd = malloc(PWD_SIZE);
 
     if (pwd == NULL) {
@@ -13,7 +23,7 @@ int pwd() {
 
     getcwd(pwd, PWD_SIZE);
     strcat(pwd, "\n");
-    write(STDOUT_FILENO, pwd, strlen(pwd));
+    write(output, pwd, strlen(pwd));
 
     free(pwd);
     return 0;
