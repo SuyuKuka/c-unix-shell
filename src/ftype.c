@@ -21,8 +21,8 @@ int ftype(char ** argv) {
             write(STDOUT_FILENO,"other\n", 6);
         }
     } else {
-        write(STDOUT_FILENO, argv[0], strlen(argv[0]));
-        write(STDOUT_FILENO, ": invalid path\n", 15);
+        write(STDERR_FILENO, argv[0], strlen(argv[0]));
+        write(STDERR_FILENO, ": invalid path\n", 15);
         return EXIT_FAILURE;
     }
     
@@ -31,7 +31,7 @@ int ftype(char ** argv) {
 
 int main(int argc, char ** argv) {
     if (argc < 2) {
-        write(STDOUT_FILENO, "Not enough argument\n", 20);
+        write(STDERR_FILENO, "Not enough argument\n", 20);
         return EXIT_FAILURE;
     }
 
