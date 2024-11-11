@@ -9,18 +9,19 @@ int externalcmd(char ** argv) {
     pid_t pid = fork();
 
     if (pid == -1) {
-        write(STDOUT_FILENO, "Error fork: problem creating a child process\n", 45);
+        write(STDERR_FILENO, "Error with fork: problem creating a child process\n", 45);
         return EXIT_FAILURE;
     } else if (pid == 0) {
         if (execvp(argv[0], argv) == -1) {
-            write(STDOUT_FILENO, argv[0], strlen(argv[0]));
-            write(STDOUT_FILENO, ": command not found\n", 20);
+            write(STDERR_FILENO, argv[0], strlen(argv[0]));
+            write(STDERR_FILENO, ": command not found\n", 20);
             _exit(EXIT_FAILURE);
         }
     } else {
         int status;
         waitpid(pid, &status, 0);
         if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+            write(STDERR_FILENO, "Error with child process\n", 25);
             return EXIT_FAILURE;
         }
     }
@@ -30,7 +31,7 @@ int externalcmd(char ** argv) {
 
 int main(int argc, char ** argv) {
     if (argc < 2) {
-        write(STDOUT_FILENO, "Not enough argument\n", 20);
+        write(STDERR_FILENO, "Not enough argument\n", 20);
         return 1;
     }
 
