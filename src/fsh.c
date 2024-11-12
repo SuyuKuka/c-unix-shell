@@ -12,6 +12,9 @@
 #define DEFAULT_COLOR "\033[00m"
 #define GREEN "\033[32m"
 #define RED "\033[91m"
+#define CYAN "\033[36m"
+
+//TODO exit();
 
 void cmd_format(char * line, cmd_info * cmd) {
     int i = 0;
@@ -20,14 +23,15 @@ void cmd_format(char * line, cmd_info * cmd) {
             cmd -> opt[strlen(cmd -> opt)] = line[i];
             i++;
         }
+        cmd -> opt[strlen(cmd -> opt)] = line[i];
         if (strlen(line) > i) {
-            memmove(line, line + i + 1, strlen(line) - i + 1);
+            memmove(line, line + i + 1, strlen(line) - i + 2);
         } else {
             memmove(line, line + i, strlen(line) - i + 1);
         }
         cmd_format(line, cmd);
     } else if (line[0] != '\0') {
-        while(isspace(line[i]) == 0 && line[i] != '\0') {
+        while(line[i] != '\0') {
             cmd -> args[strlen(cmd -> args)] = line[i];
             i++;
         }
@@ -72,6 +76,27 @@ int handle_line(char * line) {
     return result;
 }
 
+//TODO: Faire en sorte que la couleur par défaut soit pris en compte.
+/** Fonction permettant de changer la couleur du prompt. */
+void color_prompt(char * prompt, int var) {
+    size_t color_len = 0;
+    size_t cyan_len = strlen(CYAN);
+    int var_len = 3;
+    if (var == 0) {
+        color_len = strlen(GREEN);
+        memmove(prompt + color_len, prompt, strlen(prompt));
+        memmove(prompt, GREEN, color_len);
+        memmove(prompt + color_len + var_len + cyan_len, prompt + color_len + var_len, strlen(prompt) - var_len);
+        memmove(prompt + color_len + var_len, CYAN, cyan_len);
+    } else if (var == 1) {
+        color_len = strlen(RED);
+        memmove(prompt + color_len, prompt, strlen(prompt));
+        memmove(prompt, RED, color_len);
+        memmove(prompt + color_len + var_len + cyan_len, prompt + color_len + var_len, strlen(prompt) - var_len);
+        memmove(prompt + color_len + var_len, CYAN, cyan_len);
+    }
+}
+
 /** Adapte la taille du prompt et remplie le reste de '\0'. */
 void make_prompt(char * prompt, int var) {
     size_t current_size = strlen(prompt);
@@ -85,7 +110,6 @@ void make_prompt(char * prompt, int var) {
         for (size_t i = 3; i < 6; i++) {
             prompt[i] = '.';
         } 
-        strcat(prompt,"$ \0");
         for (size_t i = strlen(prompt); i < BUFFER_SIZE; i++) {
             prompt[i] = '\0';
         }
@@ -94,30 +118,10 @@ void make_prompt(char * prompt, int var) {
         prompt[0] = '[';
         prompt[1] = var + '0';
         prompt[2] = ']';
-        strcat(prompt,"$ ");
     }
-}
-
-//TODO: Faire en sorte que la couleur par défaut soit pris en compte.
-/** Fonction permettant de changer la couleur du prompt. */
-void color_prompt(char * prompt, int var) {
-    size_t color_len = 0;
-    if (var == 0) {
-        color_len = strlen(GREEN);
-        memmove(prompt + color_len, prompt, strlen(prompt));
-        memmove(prompt, GREEN, color_len);
-        strcat(prompt, DEFAULT_COLOR);
-    } else if (var == 1) {
-        color_len = strlen(RED);
-        memmove(prompt + color_len, prompt, strlen(prompt));
-        memmove(prompt, RED, color_len);
-        strcat(prompt, DEFAULT_COLOR);
-    // } else {
-    //     color_len = strlen(DEFAULT_COLOR);
-    //     memmove(prompt + color_len, prompt, strlen(prompt));
-    //     memmove(prompt, DEFAULT_COLOR, color_len);
-    //     strcat(prompt, DEFAULT_COLOR);
-    }
+    color_prompt(prompt,var);
+    strcat(prompt, DEFAULT_COLOR);
+    strcat(prompt,"$ \0");
 }
 
 int display_prompt(int var) {
@@ -135,7 +139,6 @@ int display_prompt(int var) {
 
     getcwd(prompt, BUFFER_SIZE);
     make_prompt(prompt, var);
-    color_prompt(prompt, var);
     
     line = readline(prompt);
     add_history(line);
