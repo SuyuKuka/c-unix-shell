@@ -1,7 +1,3 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
 #include "pwd.h"
 
 int pwd(cmd_info * cmd) {
