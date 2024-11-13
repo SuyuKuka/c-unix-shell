@@ -6,7 +6,7 @@
 
 int pwd(cmd_info * cmd) {
     if (strlen(cmd -> opt) == 0 && strlen(cmd -> args) == 0) {
-        return redirect_pwd(STDERR_FILENO);
+        return redirect_pwd(STDOUT_FILENO);
     } else {
         char * error = "Too many options or arguments.\n";
         write(STDERR_FILENO, error, strlen(error));
