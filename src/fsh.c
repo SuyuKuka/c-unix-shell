@@ -17,7 +17,7 @@
 //TODO exit();
 
 void cmd_format(char * line, cmd_info * cmd) {
-    int i = 0;
+    size_t i = 0;
     if (line[0] == '-') {
         while(isspace(line[i]) == 0 && line[i] != '\0') {
             cmd -> opt[strlen(cmd -> opt)] = line[i];
@@ -50,7 +50,7 @@ int handle_line(char * line) {
         goto error;
     }
     
-    int i = 0;
+    size_t i = 0;
    
     while(isspace(line[i]) == 0 && line[i] != '\0') {
         cmd -> cmd_name[i] = line[i];
@@ -81,7 +81,7 @@ int handle_line(char * line) {
 void color_prompt(char * prompt, int var) {
     size_t color_len = 0;
     size_t cyan_len = strlen(CYAN);
-    int var_len = 3;
+    size_t var_len = 3;
     if (var == 0) {
         color_len = strlen(GREEN);
         memmove(prompt + color_len, prompt, strlen(prompt));
@@ -101,12 +101,15 @@ void color_prompt(char * prompt, int var) {
 void make_prompt(char * prompt, int var) {
     size_t current_size = strlen(prompt);
     size_t size = PROMPT_SIZE - 3;
+    char return_value[4] = "\0";
+    return_value[0] = '[';
+    return_value[1] = ((char) var) + '0';
+    return_value[2] = ']';
+    return_value[4] = '\0';
     if (current_size > size) {
         memmove(prompt, prompt+(current_size - size),size);
         prompt[size] = '\0';
-        prompt[0] = '[';
-        prompt[1] = var + '0';
-        prompt[2] = ']';
+        memmove(prompt, return_value, strlen(return_value));
         for (size_t i = 3; i < 6; i++) {
             prompt[i] = '.';
         } 
@@ -115,9 +118,7 @@ void make_prompt(char * prompt, int var) {
         }
     } else {
         memmove(prompt+3, prompt, size);
-        prompt[0] = '[';
-        prompt[1] = var + '0';
-        prompt[2] = ']';
+        memmove(prompt, return_value, strlen(return_value));
     }
     color_prompt(prompt,var);
     strcat(prompt, DEFAULT_COLOR);
@@ -163,5 +164,6 @@ int display_prompt(int var) {
 }
 
 int main(int argc, char** argv) {
+    rl_outstream = stderr;
     display_prompt(0);
 }
