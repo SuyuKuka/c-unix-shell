@@ -18,24 +18,24 @@
 
 void cmd_format(char * line, cmd_info * cmd) {
     size_t i = 0;
-    if (line[0] == '-') {
+    while(isspace(line[i]) != 0) {
+        i++;
+    }
+    if (line[i] == '-') {
         while(isspace(line[i]) == 0 && line[i] != '\0') {
             cmd -> opt[strlen(cmd -> opt)] = line[i];
             i++;
         }
         cmd -> opt[strlen(cmd -> opt)] = line[i];
         if (strlen(line) > i) {
-            memmove(line, line + i + 1, strlen(line) - i + 2);
-        } else {
             memmove(line, line + i, strlen(line) - i + 1);
+            cmd_format(line, cmd);
         }
-        cmd_format(line, cmd);
     } else if (line[0] != '\0') {
         while(line[i] != '\0') {
             cmd -> args[strlen(cmd -> args)] = line[i];
             i++;
         }
-        memmove(line, line + i + 1, strlen(line) - i + 1);
     }
 }
 
