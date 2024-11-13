@@ -9,7 +9,7 @@ int pwd(cmd_info * cmd) {
         return redirect_pwd(STDOUT_FILENO);
     } else {
         char * error = "Too many options or arguments.\n";
-        write(STDERR_FILENO, error, strlen(error));
+        write(STDERR_FILENO, error, (size_t) strlen(error));
         return 1;
     }
 }
@@ -23,7 +23,7 @@ int redirect_pwd(int output) {
 
     getcwd(pwd, PWD_SIZE);
     strcat(pwd, "\n");
-    write(output, pwd, strlen(pwd));
+    write(output, pwd, (size_t) strlen(pwd));
 
     free(pwd);
     return 0;
