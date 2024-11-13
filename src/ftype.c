@@ -4,11 +4,12 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
+#include "cmd.h"
 
-int ftype(char ** argv) {
+int ftype(cmd_info * cmd) {
     struct stat s;
 
-    if (stat(argv[0], &s) == 0) {
+    if (stat(cmd -> args, &s) == 0) {
         if (S_ISDIR(s.st_mode)) {
             write(STDOUT_FILENO, "directory\n", 10);
         } else if(S_ISREG(s.st_mode)) {
@@ -21,19 +22,9 @@ int ftype(char ** argv) {
             write(STDOUT_FILENO,"other\n", 6);
         }
     } else {
-        write(STDERR_FILENO, argv[0], strlen(argv[0]));
+        write(STDERR_FILENO, cmd -> args, (unsigned) strlen(cmd -> args));
         write(STDERR_FILENO, ": invalid path\n", 15);
         return EXIT_FAILURE;
     }
-    
     return EXIT_SUCCESS;
-}
-
-int main(int argc, char ** argv) {
-    if (argc < 2) {
-        write(STDERR_FILENO, "Not enough argument\n", 20);
-        return EXIT_FAILURE;
-    }
-
-    return ftype(argv + 1);
 }

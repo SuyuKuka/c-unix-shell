@@ -1,7 +1,7 @@
 #ifndef PWD
-#include "cmd.h"
 #define PWD
 #define PWD_SIZE 512
+#include "cmd.h"
 
 int pwd(cmd_info *);
 
