@@ -163,7 +163,7 @@ int display_prompt(int var) {
     return result;
 }
 
-int main(int argc, char** argv) {
+int main() {
     rl_outstream = stderr;
     display_prompt(0);
 }
