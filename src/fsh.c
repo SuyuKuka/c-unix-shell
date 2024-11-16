@@ -13,14 +13,19 @@ void cmd_format(char * line, cmd_info * cmd) {
             i++;
         }
         cmd -> opt[strlen(cmd -> opt)] = line[i];
-        if (strlen(line) > i) {
+        if (strlen(line) > 0) {
             memmove(line, line + i, strlen(line) - i + 1);
             cmd_format(line, cmd);
         }
-    } else if (line[0] != '\0') {
-        while(line[i] != '\0') {
+    } else if (line[i] != '\0') {
+        while(isspace(line[i]) == 0 && line[i] != '\0') {
             cmd -> args[strlen(cmd -> args)] = line[i];
             i++;
+        }
+        cmd -> args[strlen(cmd -> args)] = line[i];
+        if (strlen(line) > 0) {
+            memmove(line, line + i, strlen(line) - i + 1);
+            cmd_format(line, cmd);
         }
     }
 }
