@@ -2,5 +2,7 @@
 #include "cd.c"
 
 int main(int argc, char *argv[]) {
-    return cd(argv);
+    cd(argv);
+    printf("MAIN EFFECTUE");
+    return 0;
 }
