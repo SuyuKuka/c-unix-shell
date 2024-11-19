@@ -5,12 +5,10 @@ BUILD = build
 
 all: makedir fsh
 
-makedir:    
-    @echo "Création du répertoire $(BUILD)..."
+makedir:
     mkdir -p $(BUILD)
 
-fsh:    
-    @echo "Lancement du FSH..."
+fsh:
     $(CC) -o fsh src/*.c
 
 clean:
