@@ -1,4 +1,20 @@
-#include "fsh.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <ctype.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+#include "pwd.h"
+#include "cmd.h"
+#include "ftype.h"
+#include "externalcmd.h"
+#define BUFFER_SIZE 512
+#define PROMPT_SIZE 30
+#define DEFAULT_COLOR "\033[00m"
+#define GREEN "\033[32m"
+#define RED "\033[91m"
+#define CYAN "\033[36m"
 
 //TODO exit();
 
@@ -12,6 +28,7 @@ void cmd_format(char * line, cmd_info * cmd) {
             cmd -> opt[strlen(cmd -> opt)] = line[i];
             i++;
         }
+
         cmd -> opt[strlen(cmd -> opt)] = line[i];
         if (strlen(line) > 0) {
             memmove(line, line + i, strlen(line) - i + 1);
@@ -35,16 +52,14 @@ int handle_line(char * line) {
     int result = 0;
     cmd_info * cmd = NULL;
     cmd = cmd_info_init();
-    
     if (cmd == NULL) {
         result = 1;
         goto error;
     }
     
     size_t i = 0;
-   
     while(isspace(line[i]) == 0 && line[i] != '\0') {
-        cmd -> cmd_name[i] = line[i];
+        cmd -> name[i] = line[i];
         i++;
     }
 
@@ -53,12 +68,13 @@ int handle_line(char * line) {
         cmd_format(line, cmd);
     }
 
-    if (strcmp(cmd -> cmd_name,"pwd") == 0) {
+    if (strcmp(cmd -> name, "pwd") == 0) {
         result = pwd(cmd);
+    } else if (strcmp(cmd -> name, "ftype") == 0) {
+        result = ftype(cmd);
     } else {
-        result = 1;
+        result = externalcmd(cmd);
     }
-    
     destroy_cmd_info(cmd);
     return result;
     
@@ -98,22 +114,25 @@ void make_prompt(char * prompt, int var) {
     return_value[2] = ']';
     return_value[4] = '\0';
     if (current_size > size) {
-        memmove(prompt, prompt+(current_size - size),size);
+        memmove(prompt, prompt+(current_size - size), size);
         prompt[size] = '\0';
         memmove(prompt, return_value, strlen(return_value));
         for (size_t i = 3; i < 6; i++) {
             prompt[i] = '.';
         } 
+
         for (size_t i = strlen(prompt); i < BUFFER_SIZE; i++) {
             prompt[i] = '\0';
         }
+
     } else {
         memmove(prompt+3, prompt, size);
         memmove(prompt, return_value, strlen(return_value));
     }
-    color_prompt(prompt,var);
+
+    color_prompt(prompt, var);
     strcat(prompt, DEFAULT_COLOR);
-    strcat(prompt,"$ \0");
+    strcat(prompt, "$ \0");
 }
 
 int display_prompt(int var) {
