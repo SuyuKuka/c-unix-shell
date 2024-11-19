@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "cmd.h"
 
 cmd_info * cmd_info_init() {

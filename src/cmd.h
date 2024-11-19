@@ -1,4 +1,7 @@
 #ifndef CMD
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #define CMD
 #define CMD_SIZE 64
 #define OPTIONS_SIZE 64
