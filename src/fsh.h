@@ -7,6 +7,8 @@
 #include <readline/history.h>
 #include "pwd.h"
 #include "cmd.h"
+#include "ftype.h"
+#include "externalcmd.h"
 #define BUFFER_SIZE 512
 #define PROMPT_SIZE 30
 #define DEFAULT_COLOR "\033[00m"
