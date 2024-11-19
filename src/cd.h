@@ -10,7 +10,6 @@
 
 #define MAX_PATH_LENGTH PATH_MAX
 
-int cd(char ** argv);
-//int change_dir(const char *path);
+int cd(cmd_info * cmd);
 
 #endif
