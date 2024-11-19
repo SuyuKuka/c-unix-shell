@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include "cmd.h"
+#include "redirection.h"
 
 int split(const char *str, char **argv) {
     int argc = 0;
@@ -31,8 +32,6 @@ int split(const char *str, char **argv) {
                 argc++;
                 arg_len = 0; 
             }
-        //redirection
-        //else if ...
         } else {
             arg[arg_len++] = str[i];
         }
@@ -81,6 +80,11 @@ int externalcmd(cmd_info *cmd) {
         // Test
         for(int i = 0; i < argc + 1; i++) {
             printf("argv[%d] = %s\n", i, argv[i]);
+        }
+
+        // lui passer les bons arguments
+        if (redirection(">", "text.txt") != EXIT_SUCCESS) {
+            _exit(EXIT_FAILURE);
         }
 
         if (execvp(argv[0], argv) == -1) {
