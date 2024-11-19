@@ -1,9 +1,6 @@
-#include <stdlib.h>
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <string.h>
 #include <ctype.h>
 #include "cmd.h"
 
@@ -82,9 +79,9 @@ int externalcmd(cmd_info *cmd) {
         argv[argc] = NULL;
 
         // Test
-        // for(int i = 0; i < argc + 1; i++) {
-        //     printf("argv[%d] = %s\n", i, argv[i]);
-        // }
+        for(int i = 0; i < argc + 1; i++) {
+            printf("argv[%d] = %s\n", i, argv[i]);
+        }
 
         if (execvp(argv[0], argv) == -1) {
             free(argv);
