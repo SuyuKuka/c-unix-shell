@@ -199,5 +199,5 @@ int display_prompt(int var) {
 
 int main() {
     rl_outstream = stderr;
-    return display_prompt(-1);
+    display_prompt(-1);
 }
