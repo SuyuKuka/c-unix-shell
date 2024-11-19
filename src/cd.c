@@ -1,6 +1,50 @@
 #include "cd.h"
 
 
+int cd(cmd_info *cmd) {
+    static char last_dir[PATH_MAX] = ""; // ?
+    char cwd[PATH_MAX];
+
+    if (getcwd(cwd, sizeof(cwd)) == NULL) { // Get le répertoire courant
+        perror("getcwd");
+        return EXIT_FAILURE;    
+    }
+
+    if (cmd->opt == NULL && cmd->args == NULL) {
+        const char *src = getenv("SRC"); // Cas sans argument/option : aller à SRC
+        if (src && chdir(src) == 0) {
+            strncpy(last_dir, cwd, PATH_MAX);
+            printf("Répertoire changé vers SRC : %s\n", src);
+            return EXIT_SUCCESS;
+        }
+        fprintf(stderr, "Erreur : variable SRC non définie ou inaccessible.\n");
+        return EXIT_FAILURE;
+    }
+    if (cmd->opt && strcmp(cmd->opt, "-") == 0) { // Cas option '-' : return au dernier répertoire
+        if (strlen(last_dir) > 0 && chdir(last_dir) == 0) {
+            strncpy(last_dir, cwd, PATH_MAX);
+            printf("Répertoire changé vers le précédent : %s\n", last_dir);
+            return EXIT_SUCCESS;
+        }
+        fprintf(stderr, "Erreur : aucun répertoire précédent défini.\n");
+        return EXIT_FAILURE;
+    }
+    if (cmd->args) { // Cas avec un argument (chemin vers un répertoire)
+        if (chdir(cmd->args) == 0) {
+            strncpy(last_dir, cwd, PATH_MAX);
+            printf("Répertoire changé vers : %s\n", cmd->args);
+            return EXIT_SUCCESS;
+        }
+        fprintf(stderr, "Erreur : impossible d'accéder au répertoire '%s'.\n", cmd->args);
+        return EXIT_FAILURE;
+    }
+
+    fprintf(stderr, "Erreur : commande invalide.\n");
+    return EXIT_FAILURE;
+}
+
+
+/*
 int cd(char ** argv) {
     static char last_dir[PATH_MAX];
     char cwd[MAX_PATH_LENGTH];
@@ -31,48 +75,5 @@ int cd(char ** argv) {
     }
     printf("Erreur: problème path ? ");
     return EXIT_FAILURE;
-}
-
-
-/*
-int change_dir(const char *path) {
-    if (chdir(path) != 0) {
-        perror("(cd) Impossible de trouver le chemin d'accès ");
-        printf("1"); // Malgré conditions, cd echoué
-        return 1;
-    }
-    chdir(path);
-    printf("0"); // Dans conditions, cd effectué
-    return 0;
-}
-int cd(char ** argv) {
-    static char last_dir[PATH_MAX];
-    char cwd[MAX_PATH_LENGTH];
-    const char * path = argv[1];
-
-    if (path == NULL) { // Sans argument ou '.'
-     if (getcwd(cwd, sizeof(cwd)) == NULL) {
-            perror("Erreur lors de la récupération du répertoire courant");
-            return 1;
-        }
-        printf("Cas dir courant : %s\n", cwd);
-        return 0;
-    }
-    if (strcmp(path, "-") == 0) {    // Cas "-", erreur à chaque fois tant que last_dir -> not def
-        if (strlen(last_dir) != 0 && chdir(last_dir) == 0) {
-            // Le répertoire courant devient alors le répertoire précèdent pour le prochain appel.
-            strncpy(last_dir, cwd, PATH_MAX);
-            return EXIT_SUCCESS;
-        }
-        if (getcwd(cwd, sizeof(cwd)) != NULL) { // useless ?
-            strcpy(last_dir, cwd);
-        }
-        printf("Cas '-'\n");
-        return change_dir(last_dir);
-    }
-    // Cas de ref
-    strcpy(last_dir, cwd);
-    printf("Cas ref\n");
-    return change_dir(path); // chdir('SRC' + '\' + argv[1]) ?
 }
 */
