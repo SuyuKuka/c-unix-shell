@@ -1,22 +1,26 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
-#include <readline/readline.h>
-#include <readline/history.h>
-#include "pwd.h"
-#include "cmd.h"
-#include "ftype.h"
-#include "externalcmd.h"
-#define BUFFER_SIZE 512
-#define PROMPT_SIZE 30
-#define DEFAULT_COLOR "\033[00m"
-#define GREEN "\033[32m"
-#define RED "\033[91m"
-#define CYAN "\033[36m"
+#include "fsh.h"
 
-//TODO exit();
+int fsh_exit(cmd_info * cmd) {
+    int flag = 1;
+    size_t args_length = strlen(cmd -> args);
+    for (size_t i = 0; i < args_length; i++) {
+        if (!isdigit(cmd -> args[i])) {
+            flag = 0;
+        }
+    }
+    if (strlen(cmd -> opt) > 0 || flag == 0) {
+        char * error = "Too many arguments or wrong value.\n";
+        write(STDERR_FILENO, error, strlen(error));
+        return 1;
+    } else if (strlen(cmd -> args) > 0) {
+        int n  = atoi(cmd -> args);
+        destroy_cmd_info(cmd);
+        exit(n);
+    } else {
+        destroy_cmd_info(cmd);
+        exit(0);
+    }
+}
 
 void cmd_format(char * line, cmd_info * cmd) {
     size_t i = 0;
@@ -47,6 +51,18 @@ void cmd_format(char * line, cmd_info * cmd) {
     }
 }
 
+int call_function (cmd_info * cmd) {
+    if (strcmp("pwd", cmd -> name) == 0) {
+        return pwd(cmd);
+    } else if (strcmp("exit", cmd -> name) == 0) {
+        return fsh_exit(cmd);
+    } else if (strcmp(cmd -> name, "ftype") == 0) {
+        return ftype(cmd);
+    } else {
+        return externalcmd(cmd);
+    }
+}
+
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
 int handle_line(char * line) {
     int result = 0;
@@ -58,6 +74,11 @@ int handle_line(char * line) {
     }
     
     size_t i = 0;
+
+    while(isspace(line[i]) != 0) {
+        i++;
+    }
+   
     while(isspace(line[i]) == 0 && line[i] != '\0') {
         cmd -> name[i] = line[i];
         i++;
@@ -67,14 +88,11 @@ int handle_line(char * line) {
         memmove(line, line + i + 1, strlen(line) - i + 1);
         cmd_format(line, cmd);
     }
+    
+    free(line);
 
-    if (strcmp(cmd -> name, "pwd") == 0) {
-        result = pwd(cmd);
-    } else if (strcmp(cmd -> name, "ftype") == 0) {
-        result = ftype(cmd);
-    } else {
-        result = externalcmd(cmd);
-    }
+    result = call_function(cmd);
+    
     destroy_cmd_info(cmd);
     return result;
     
@@ -89,13 +107,19 @@ void color_prompt(char * prompt, int var) {
     size_t color_len = 0;
     size_t cyan_len = strlen(CYAN);
     size_t var_len = 3;
-    if (var == 0) {
+    if (var == -1) {
+        color_len = strlen(DEFAULT_COLOR);
+        memmove(prompt + color_len, prompt, strlen(prompt));
+        memmove(prompt, DEFAULT_COLOR, color_len);
+        memmove(prompt + color_len + var_len + cyan_len, prompt + color_len + var_len, strlen(prompt) - var_len);
+        memmove(prompt + color_len + var_len, CYAN, cyan_len);
+    } else if (var == 0) {
         color_len = strlen(GREEN);
         memmove(prompt + color_len, prompt, strlen(prompt));
         memmove(prompt, GREEN, color_len);
         memmove(prompt + color_len + var_len + cyan_len, prompt + color_len + var_len, strlen(prompt) - var_len);
         memmove(prompt + color_len + var_len, CYAN, cyan_len);
-    } else if (var == 1) {
+    } else {
         color_len = strlen(RED);
         memmove(prompt + color_len, prompt, strlen(prompt));
         memmove(prompt, RED, color_len);
@@ -110,7 +134,11 @@ void make_prompt(char * prompt, int var) {
     size_t size = PROMPT_SIZE - 3;
     char return_value[4] = "\0";
     return_value[0] = '[';
-    return_value[1] = ((char) var) + '0';
+    if (var == -1) { 
+        return_value[1] = '0';
+    } else {
+        return_value[1] = ((char) var) + '0';
+    }
     return_value[2] = ']';
     return_value[4] = '\0';
     if (current_size > size) {
@@ -155,15 +183,11 @@ int display_prompt(int var) {
     add_history(line);
     memmove(command, line, strlen(line) + 1);
 
-    if (strcmp(line, "exit") == 0) {
-        result = 0;
-        goto cleanup;
-    }
-    result = handle_line(command);
-
     free(line);
     free(prompt);
-    free(command);
+
+    result = handle_line(command);
+
     return display_prompt(result);
 
     cleanup:
@@ -175,5 +199,5 @@ int display_prompt(int var) {
 
 int main() {
     rl_outstream = stderr;
-    display_prompt(0);
+    display_prompt(-1);
 }
