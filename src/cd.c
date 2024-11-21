@@ -42,38 +42,3 @@ int cd(cmd_info *cmd) {
     fprintf(stderr, "Erreur : commande invalide.\n");
     return EXIT_FAILURE;
 }
-
-
-/*
-int cd(char ** argv) {
-    static char last_dir[PATH_MAX];
-    char cwd[MAX_PATH_LENGTH];
-    const char * path = argv[1];
-    
-    if (path == NULL) {
-        if (chdir(getenv("SRC")) == 0) {
-            strncpy(last_dir, cwd, PATH_MAX);
-            printf("Cas sans argument reconnu.");
-            return EXIT_SUCCESS;
-        }
-        printf("Erreur: path src ?  ");
-        return EXIT_FAILURE;  
-    } else if (strcmp(path, "-") == 0) {
-        if (strlen(last_dir) != 0 && chdir(last_dir) == 0) {  // Si il y a déjà last_dir enregistré.
-            strncpy(last_dir, cwd, PATH_MAX); // Le courant devient le précèdent pour le prochain appel.
-            printf("Cas '-' reconnu.");
-            return EXIT_SUCCESS;
-        }
-        printf("Erreur: path - ?  ");
-        return EXIT_FAILURE;
-    }
-
-    if (chdir(path) == 0) {               // Change le répertoire courant.
-        strncpy(last_dir, cwd, PATH_MAX);  // Le courant devient le précèdent pour le prochain appel.
-        printf("Cas path reconnu. ");
-        return EXIT_SUCCESS;
-    }
-    printf("Erreur: problème path ? ");
-    return EXIT_FAILURE;
-}
-*/
