@@ -11,13 +11,13 @@ int cd(cmd_info *cmd) {
     }
 
     if (cmd->opt == NULL && cmd->args == NULL) {
-        const char *src = getenv("SRC"); // Cas sans argument/option : aller à SRC
+        const char *src = getenv("HOME"); // Cas sans argument/option : retour à HOME
         if (src && chdir(src) == 0) {
             strncpy(last_dir, cwd, PATH_MAX);
             printf("Répertoire changé vers SRC : %s\n", src);
             return EXIT_SUCCESS;
         }
-        fprintf(stderr, "Erreur : variable SRC non définie ou inaccessible.\n");
+        fprintf(stderr, "Erreur : variable HOME non définie ou inaccessible.\n");
         return EXIT_FAILURE;
     }
     if (cmd->opt && strcmp(cmd->opt, "-") == 0) { // Cas option '-' : return au dernier répertoire

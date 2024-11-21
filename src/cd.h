@@ -1,6 +1,6 @@
 #ifndef CD
 #define CD
-#define SRC = $SRC
+#define HOME = $HOME
 
 #include <limits.h>
 #include <stdio.h>
