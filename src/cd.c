@@ -10,11 +10,11 @@ int cd(cmd_info *cmd) {
         return EXIT_FAILURE;    
     }
 
-    if (cmd->opt == NULL && cmd->args == NULL) {
-        const char *src = getenv("HOME"); // Cas sans argument/option : retour à HOME
-        if (src && chdir(src) == 0) {
+    if (strlen(cmd->args) == 0 && strlen(cmd->opt) == 0) { // Cas sans argument/option : retour à HOME
+        const char *home = getenv("HOME");
+        if (home && chdir(home) == 0) {
             strncpy(last_dir, cwd, PATH_MAX);
-            printf("Répertoire changé vers SRC : %s\n", src);
+            printf("Répertoire changé vers HOME : %s\n", home);
             return EXIT_SUCCESS;
         }
         fprintf(stderr, "Erreur : variable HOME non définie ou inaccessible.\n");
