@@ -36,20 +36,23 @@ int call_function (cmd_info * cmd) {
 
 int exec_for_cmd(for_info * f) {
     int result = 0;
+    char * path = NULL; 
+    struct dirent * entry = NULL;
+    struct stat s; 
+    int file_arg = -1;
     DIR * dirp = opendir(f -> directory); 
     if (dirp == NULL) {  
-        perror("Référence invalide : "); 
+        perror("Référence invalide"); 
         result = 1;
         goto error;
     }
-    char * path = malloc(BUFFER_SIZE * sizeof(char));
+    path = malloc(BUFFER_SIZE * sizeof(char));
     if (path == NULL) {
         result = 1;
         goto error;
     }
-    struct dirent * entry;
-    struct stat s; 
-    int file_arg = strcmp("$F", f -> command -> args);
+    
+    file_arg = strcmp("$F", f -> command -> args);
     
     if (f->directory[strlen(f -> directory) - 1] != '/') {
         strcat(f -> directory, "/");
