@@ -18,36 +18,7 @@ int fsh_exit(cmd_info * cmd) {
         exit(n);
     } else {
         destroy_cmd_info(cmd);
-        exit(0);
-    }
-}
-
-void cmd_format(char * line, cmd_info * cmd) {
-    size_t i = 0;
-    while(isspace(line[i]) != 0) {
-        i++;
-    }
-    if (line[i] == '-') {
-        while(isspace(line[i]) == 0 && line[i] != '\0') {
-            cmd -> opt[strlen(cmd -> opt)] = line[i];
-            i++;
-        }
-
-        cmd -> opt[strlen(cmd -> opt)] = line[i];
-        if (strlen(line) > 0) {
-            memmove(line, line + i, strlen(line) - i + 1);
-            cmd_format(line, cmd);
-        }
-    } else if (line[i] != '\0') {
-        while(isspace(line[i]) == 0 && line[i] != '\0') {
-            cmd -> args[strlen(cmd -> args)] = line[i];
-            i++;
-        }
-        cmd -> args[strlen(cmd -> args)] = line[i];
-        if (strlen(line) > 0) {
-            memmove(line, line + i, strlen(line) - i + 1);
-            cmd_format(line, cmd);
-        }
+        exit(255);
     }
 }
 
@@ -63,10 +34,63 @@ int call_function (cmd_info * cmd) {
     }
 }
 
+int exec_for_cmd(for_info * f) {
+    int result = 0;
+    DIR * dirp = opendir(f -> directory); 
+    if (dirp == NULL) {  
+        perror("Référence invalide : "); 
+        result = 1;
+        goto error;
+    }
+    char * path = malloc(BUFFER_SIZE * sizeof(char));
+    if (path == NULL) {
+        result = 1;
+        goto error;
+    }
+    struct dirent * entry;
+    struct stat s; 
+    int file_arg = strcmp("$F", f -> command -> args);
+    
+    if (f->directory[strlen(f -> directory) - 1] != '/') {
+        strcat(f -> directory, "/");
+    }
+    memmove(path, f -> directory, strlen(f -> directory) + 1);
+
+    while((entry = readdir(dirp)) != NULL) {
+        memmove(path + strlen(f -> directory), entry -> d_name, strlen(entry -> d_name) + 1);
+        if (lstat(path, &s) == 0) {
+            if(entry -> d_name[0] != '.' && S_ISREG(s.st_mode)) {
+                if  (file_arg == 0) {
+                    memmove(f -> command -> args, path, strlen(path) + 1);
+                }
+                int n = call_function(f -> command);
+                if (n > result) {
+                    result = n;
+                }
+            }
+        } else {
+            closedir(dirp);
+            perror("erreur");
+            goto error;
+        }
+    }
+
+    free(path);
+    closedir(dirp);
+    destroy_for_info(f);
+    return result;
+
+    error:
+    free(path);
+    destroy_for_info(f);
+    return result;
+}
+
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
 int handle_line(char * line) {
     int result = 0;
     cmd_info * cmd = NULL;
+    for_info * f = NULL;
     cmd = cmd_info_init();
     if (cmd == NULL) {
         result = 1;
@@ -75,33 +99,40 @@ int handle_line(char * line) {
     
     size_t i = 0;
 
-    while(isspace(line[i]) != 0) {
-        i++;
-    }
+    while(isspace(line[i]) != 0) {i++;}
    
     while(isspace(line[i]) == 0 && line[i] != '\0') {
         cmd -> name[i] = line[i];
         i++;
     }
 
-    if (line[i] != '\0') {
-        memmove(line, line + i + 1, strlen(line) - i + 1);
-        cmd_format(line, cmd);
+    if (strcmp(cmd -> name,"for") != 0) {
+        if (line[i] != '\0') {
+            memmove(line, line + i + 1, strlen(line) - i + 1);
+            cmd_format(line, cmd);
+        }
+        result = call_function(cmd);
+    } else {
+        if (line[i] != '\0') {
+            memmove(line, line + i + 1, strlen(line) - i + 1);
+        }
+        f = handle_for_line(line);
+        if (f == NULL) {
+            result = 1;
+            goto error;
+        }
+        result = exec_for_cmd(f);
     }
-    
     free(line);
-
-    result = call_function(cmd);
-    
     destroy_cmd_info(cmd);
     return result;
     
     error:
+    free(line);
     destroy_cmd_info(cmd);
     return result;
 }
 
-//TODO: Faire en sorte que la couleur par défaut soit pris en compte.
 /** Fonction permettant de changer la couleur du prompt. */
 void color_prompt(char * prompt, int var) {
     size_t color_len = 0;

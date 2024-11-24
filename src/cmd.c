@@ -23,17 +23,43 @@ cmd_info * cmd_info_init() {
     return c;
 
     error:
-    printf("NULL");
-    free(c -> name);
-    free(c -> opt);
-    free(c -> args);
-    free(c);
+    destroy_cmd_info(c);
     return NULL;
 }
 
 void destroy_cmd_info(cmd_info * cmd) {
-    free(cmd -> name);
-    free(cmd -> opt);
-    free(cmd -> args);
+    if (cmd != NULL) {
+        free(cmd -> name);
+        free(cmd -> opt);
+        free(cmd -> args);
+    }
     free(cmd);
+}
+
+void cmd_format(char * line, cmd_info * cmd) {
+    size_t i = 0;
+    while(isspace(line[i]) != 0) {i++;}
+    if (line[i] == '-') {
+        while(isspace(line[i]) == 0 && line[i] != '\0') {
+            cmd -> opt[strlen(cmd -> opt)] = line[i];
+            i++;
+        }
+        while(isspace(line[i]) != 0) {i++;}
+        if (line[i] != '\0') {
+            strcat(cmd -> opt, " ");
+            memmove(line, line + i, strlen(line) - i + 1);
+            cmd_format(line, cmd);
+        }
+    } else if (line[i] != '\0') {
+        while(isspace(line[i]) == 0 && line[i] != '\0') {
+            cmd -> args[strlen(cmd -> args)] = line[i];
+            i++;
+        }
+        while(isspace(line[i]) != 0) {i++;}
+        if (line[i] != '\0') {
+            strcat(cmd -> args, " ");
+            memmove(line, line + i, strlen(line) - i + 1);
+            cmd_format(line, cmd);
+        }
+    }
 }
