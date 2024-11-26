@@ -1,5 +1,4 @@
 #ifndef EXTERNALCMD
-#define EXTERNALCMD
 #define EXTERNALCMD 
 #include "cmd.h"
 
