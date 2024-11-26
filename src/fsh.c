@@ -31,7 +31,7 @@ int call_function (cmd_info * cmd) {
         return ftype(cmd);
     } else if (strcmp(cmd -> name, "cd") == 0) { 
         return cd(cmd);
-    }else {
+    } else {
         return externalcmd(cmd);
     }
 }
@@ -110,8 +110,11 @@ int handle_line(char * line) {
         cmd -> name[i] = line[i];
         i++;
     }
+    
 
-    if (strcmp(cmd -> name,"for") != 0) {
+    if (strcmp(cmd -> name, "") == 0) {
+        result = 0;    
+    } else if (strcmp(cmd -> name,"for") != 0) {
         if (line[i] != '\0') {
             memmove(line, line + i + 1, strlen(line) - i + 1);
             cmd_format(line, cmd);
