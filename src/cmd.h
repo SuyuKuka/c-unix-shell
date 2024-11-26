@@ -1,8 +1,9 @@
 #ifndef CMD
+#define CMD
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define CMD
+#include <ctype.h>
 #define CMD_SIZE 64
 #define OPTIONS_SIZE 64
 #define ARG_SIZE 512
@@ -17,5 +18,7 @@ typedef struct cmd_info {
 cmd_info * cmd_info_init();
 
 void destroy_cmd_info(cmd_info *);
+
+void cmd_format(char *, cmd_info *);
 
 #endif 
