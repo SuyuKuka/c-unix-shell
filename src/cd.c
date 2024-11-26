@@ -26,6 +26,12 @@ int cd(cmd_info *cmd) {
         fprintf(stderr, "cd: Aucun répertoire précédent enregistré\n");
         return EXIT_FAILURE;
     }
+
+    if (cmd->args && strlen(cmd->args) >= PATH_MAX) {  // Vérifie si le chemin est trop long
+        fprintf(stderr, "cd: Path too long\n");
+        errno = ENAMETOOLONG;
+        return EXIT_FAILURE;
+    }
     if (cmd->args) { // Cas avec argument (chemin vers un répertoire)
         if (chdir(cmd->args) == 0) {
             strncpy(last_dir, cwd, PATH_MAX);
