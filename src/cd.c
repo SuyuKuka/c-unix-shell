@@ -29,6 +29,7 @@ int cd(cmd_info *cmd) {
             strncpy(last_dir, cwd, PATH_MAX);
             return EXIT_SUCCESS;
         }
+        perror("cd");
         return EXIT_FAILURE;
     }
 
