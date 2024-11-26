@@ -7,97 +7,81 @@
 #include <ctype.h>
 #include "cmd.h"
 
-int split(const char *str, char **argv) {
-    int argc = 0;
-    const char *start = str;
-    int len = strlen(str);
-    char *arg = malloc(len + 1);
+// int split(const char *str, char **argv) {
+//     int argc = 0;
+//     const char *start = str;
+//     int len = strlen(str);
+//     char *arg = malloc(len + 1); //aAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
-    if (!arg) {
-        perror("malloc");
-        return EXIT_FAILURE;
-    }
+//     if (!arg) {
+//         perror("malloc");
+//         return EXIT_FAILURE;
+//     }
 
-    int arg_len = 0;
-    for (int i = 0; i <= len; i++) {
-        if (isspace(str[i]) || str[i] == '\0') {
-            if (arg_len > 0) {
-                arg[arg_len] = '\0';
-                argv[argc] = malloc(arg_len + 1);
-                if (argv[argc] == NULL) {
-                    free(arg);
-                    perror("malloc");
-                    return EXIT_FAILURE;
-                }
+//     int arg_len = 0;
+//     for (int i = 0; i <= len; i++) {
+//         if (isspace(str[i]) || str[i] == '\0') {
+//             if (arg_len > 0) {
+//                 arg[arg_len] = '\0';
+//                 argv[argc] = malloc(arg_len + 1);
+//                 if (argv[argc] == NULL) {
+//                     free(arg);
+//                     perror("malloc");
+//                     return EXIT_FAILURE;
+//                 }
                 
-                memcpy(argv[argc], arg, arg_len + 1);
-                argc++;
-                arg_len = 0; 
-            }
-        //redirection
-        //else if ...
-        } else {
-            arg[arg_len++] = str[i];
-        }
-    }
+//                 memcpy(argv[argc], arg, arg_len + 1);
+//                 argc++;
+//                 arg_len = 0; 
+//             }
+//         } else {
+//             arg[arg_len++] = str[i];
+//         }
+//     }
 
-    free(arg);
-    return argc;
-}
+//     free(arg);
+//     return argc;
+// }
 
-int externalcmd(cmd_info *cmd) {
+int externalcmd(cmd_info *cmd) { 
     pid_t pid = fork();
     if (pid == -1) {
         write(STDERR_FILENO, "Error with fork: problem creating a child process\n", 45);
         return EXIT_FAILURE;
     } else if (pid == 0) {
         int argc = 0;
-        char ** argv = malloc(CMD_SIZE);
+        char **argv = malloc(CMD_SIZE * sizeof(char*));
         if (!argv) {
             perror("malloc");
             _exit(EXIT_FAILURE);
         }
 
         argv[argc++] = cmd -> name;
-        if (strcmp(cmd -> opt, "") != 0) {
-            int nb_opt = split(cmd -> opt, argv + argc);
-            if (nb_opt < 0) {
-                free(argv);
-                perror("split opt");
-                return EXIT_FAILURE;
-            }
-            argc += nb_opt;
-        }
-
-        if (strcmp(cmd -> args, "") != 0) {
-            int nb_args = split(cmd -> args, argv + argc);
-            if (nb_args < 0) {
-                free(argv);
-                perror("split arg");
-                return EXIT_FAILURE;
-            }
-            argc += nb_args;
-        }
-
         argv[argc] = NULL;
 
-        // Test
-        // for(int i = 0; i < argc + 1; i++) {
-        //     printf("argv[%d] = %s\n", i, argv[i]);
-        // }
+        fprintf(stderr, "Commande executée: %s\n", argv[0]);
 
         if (execvp(argv[0], argv) == -1) {
-            free(argv);
+            // free(argv);
             perror("execvp");
             _exit(EXIT_FAILURE);
         }
     } else {
         int status;
         waitpid(pid, &status, 0);
-        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-            write(STDERR_FILENO, "Error in child process\n", 24);
+        if (WIFEXITED(status)) {
+            int exit_status = WEXITSTATUS(status);
+            if (exit_status != 0) {
+                if (strcmp(cmd->name, "false") != 0) {
+                    write(STDERR_FILENO, "Error in child process\n", 24);
+                }
+                return EXIT_FAILURE;
+            }
+        } else {
+            write(STDERR_FILENO, "Child process did not exit normally\n", 36);
             return EXIT_FAILURE;
         }
     }
     return EXIT_SUCCESS;
 }
+

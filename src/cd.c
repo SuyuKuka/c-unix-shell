@@ -1,5 +1,5 @@
 #include "cd.h"
-
+#include <errno.h>
 
 int cd(cmd_info *cmd) {
     static char last_dir[PATH_MAX] = "";
