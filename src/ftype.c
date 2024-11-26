@@ -1,29 +1,26 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <string.h>
 #include "cmd.h"
 
 int ftype(cmd_info * cmd) {
     struct stat s;
+    char * result;
 
-    if (stat(cmd -> args, &s) == 0) {
+    if (lstat(cmd -> args, &s) == 0) {
         if (S_ISDIR(s.st_mode)) {
-            write(STDOUT_FILENO, "directory\n", 10);
+            result = "directory\n";
         } else if(S_ISREG(s.st_mode)) {
-            write(STDOUT_FILENO, "file\n", 5);
+            result = "regular file\n";
         } else if (S_ISLNK(s.st_mode)) {
-            write(STDOUT_FILENO, "symbolic link\n", 14);
+            result = "symbolic link\n";
         } else if (S_ISFIFO(s.st_mode)) {
-            write(STDOUT_FILENO, "named pipe\n", 11);
+            result = "named pipe\n";
         } else {
-            write(STDOUT_FILENO,"other\n", 6);
+            result = "other\n";
         }
+        write(STDOUT_FILENO, result, strlen(result));
     } else {
-        write(STDERR_FILENO, cmd -> args, (unsigned) strlen(cmd -> args));
-        write(STDERR_FILENO, ": invalid path\n", 15);
+        perror("ftype");
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
