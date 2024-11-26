@@ -34,8 +34,7 @@ int call_function (cmd_info * cmd) {
     } else if (strcmp(cmd -> name, "cd") == 0) { 
         return cd(cmd);
     } else {
-        // return externalcmd(cmd);
-        return 0;
+        return externalcmd(cmd);
     }
 }
 
