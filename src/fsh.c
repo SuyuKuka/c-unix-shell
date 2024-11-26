@@ -1,5 +1,7 @@
 #include "fsh.h"
 
+int last_return = -1;
+
 int fsh_exit(cmd_info * cmd) {
     int flag = 1;
     size_t args_length = strlen(cmd -> args);
@@ -18,7 +20,7 @@ int fsh_exit(cmd_info * cmd) {
         exit(n);
     } else {
         destroy_cmd_info(cmd);
-        exit(255);
+        exit(last_return);
     }
 }
 
@@ -212,7 +214,6 @@ void make_prompt(char * prompt, int var) {
 }
 
 int display_prompt(int var) {
-    int result = 0;
     char * prompt = NULL;
     char * command = NULL;
     char * line = NULL;
@@ -220,7 +221,7 @@ int display_prompt(int var) {
     command = malloc(BUFFER_SIZE * sizeof(char));
     
     if (prompt == NULL || command == NULL) {
-        result = 1;
+        last_return = 1;
         goto cleanup;
     }
 
@@ -228,23 +229,27 @@ int display_prompt(int var) {
     make_prompt(prompt, var);
     
     line = readline(prompt);
+    if (line == NULL) {
+        last_return = 0;
+        goto cleanup;
+    }
     add_history(line);
     memmove(command, line, strlen(line) + 1);
 
     free(line);
     free(prompt);
 
-    result = handle_line(command);
-    return display_prompt(result);
+    last_return = handle_line(command);
+    return display_prompt(last_return);
 
     cleanup:
     free(line);
     free(prompt);
     free(command);
-    return result;
+    return last_return;
 }
 
 int main() {
     rl_outstream = stderr;
-    display_prompt(-1);
+    display_prompt(last_return);
 }
