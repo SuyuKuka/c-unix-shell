@@ -172,7 +172,7 @@ void color_prompt(char * prompt, int var) {
 /** Adapte la taille du prompt et remplie le reste de '\0'. */
 void make_prompt(char * prompt, int var) {
     size_t current_size = strlen(prompt);
-    size_t size = PROMPT_SIZE - 3;
+    size_t size = PROMPT_SIZE + 1;
     char * return_value = calloc(5,sizeof(char));
 
     if (var == 255) { 
@@ -185,16 +185,17 @@ void make_prompt(char * prompt, int var) {
             return_value[1] = ((char) var) + '0';
         }
         return_value[2] = ']';
-        return_value[4] = '\0';
+        return_value[3] = '\0';
     }
 
     size_t return_length = strlen(return_value);
-    if (current_size > size) {
+    if (current_size > PROMPT_SIZE) {
+        size = size - return_length;
         memmove(prompt, prompt+(current_size - size), size);
         prompt[size] = '\0';
         memmove(prompt, return_value, return_length);
 
-        for (size_t i = 3; i < 6; i++) {
+        for (size_t i = return_length; i < return_length + 3; i++) {
             prompt[i] = '.';
         } 
 
