@@ -7,6 +7,7 @@
 #include <readline/history.h>
 #include "pwd.h"
 #include "cmd.h"
+#include "cd.h"
 #include "ftype.h"
 #include "externalcmd.h"
 #define BUFFER_SIZE 512
