@@ -1,5 +1,7 @@
 #include "fsh.h"
 
+int last_return = -1;
+
 int fsh_exit(cmd_info * cmd) {
     int flag = 1;
     size_t args_length = strlen(cmd -> args);
@@ -18,7 +20,7 @@ int fsh_exit(cmd_info * cmd) {
         exit(n);
     } else {
         destroy_cmd_info(cmd);
-        exit(255);
+        exit(last_return);
     }
 }
 
@@ -146,22 +148,22 @@ void color_prompt(char * prompt, int var) {
     size_t color_len = 0;
     size_t cyan_len = strlen(CYAN);
     size_t var_len = 3;
-    if (var == -1) {
-        color_len = strlen(DEFAULT_COLOR);
-        memmove(prompt + color_len, prompt, strlen(prompt));
-        memmove(prompt, DEFAULT_COLOR, color_len);
-        memmove(prompt + color_len + var_len + cyan_len, prompt + color_len + var_len, strlen(prompt) - var_len);
-        memmove(prompt + color_len + var_len, CYAN, cyan_len);
-    } else if (var == 0) {
+    if (var == 0) {
         color_len = strlen(GREEN);
         memmove(prompt + color_len, prompt, strlen(prompt));
         memmove(prompt, GREEN, color_len);
         memmove(prompt + color_len + var_len + cyan_len, prompt + color_len + var_len, strlen(prompt) - var_len);
         memmove(prompt + color_len + var_len, CYAN, cyan_len);
-    } else {
+    } else if (var == 1 || var == 255) {
         color_len = strlen(RED);
         memmove(prompt + color_len, prompt, strlen(prompt));
         memmove(prompt, RED, color_len);
+        memmove(prompt + color_len + var_len + cyan_len, prompt + color_len + var_len, strlen(prompt) - var_len);
+        memmove(prompt + color_len + var_len, CYAN, cyan_len);
+    } else {
+        color_len = strlen(DEFAULT_COLOR);
+        memmove(prompt + color_len, prompt, strlen(prompt));
+        memmove(prompt, DEFAULT_COLOR, color_len);
         memmove(prompt + color_len + var_len + cyan_len, prompt + color_len + var_len, strlen(prompt) - var_len);
         memmove(prompt + color_len + var_len, CYAN, cyan_len);
     }
@@ -171,19 +173,27 @@ void color_prompt(char * prompt, int var) {
 void make_prompt(char * prompt, int var) {
     size_t current_size = strlen(prompt);
     size_t size = PROMPT_SIZE - 3;
-    char return_value[4] = "\0";
-    return_value[0] = '[';
-    if (var == -1) { 
-        return_value[1] = '0';
+    char * return_value = calloc(5,sizeof(char));
+
+    if (var == 255) { 
+        memmove(return_value, "[SIG]", 5);
     } else {
-        return_value[1] = ((char) var) + '0';
+        return_value[0] = '[';
+        if (var == -1) {
+            return_value[1] = '0';
+        } else {
+            return_value[1] = ((char) var) + '0';
+        }
+        return_value[2] = ']';
+        return_value[4] = '\0';
     }
-    return_value[2] = ']';
-    return_value[4] = '\0';
+
+    size_t return_length = strlen(return_value);
     if (current_size > size) {
         memmove(prompt, prompt+(current_size - size), size);
         prompt[size] = '\0';
-        memmove(prompt, return_value, strlen(return_value));
+        memmove(prompt, return_value, return_length);
+
         for (size_t i = 3; i < 6; i++) {
             prompt[i] = '.';
         } 
@@ -193,17 +203,17 @@ void make_prompt(char * prompt, int var) {
         }
 
     } else {
-        memmove(prompt+3, prompt, size);
-        memmove(prompt, return_value, strlen(return_value));
+        memmove(prompt + return_length, prompt, size);
+        memmove(prompt, return_value, return_length);
     }
 
     color_prompt(prompt, var);
     strcat(prompt, DEFAULT_COLOR);
     strcat(prompt, "$ \0");
+    free(return_value);
 }
 
 int display_prompt(int var) {
-    int result = 0;
     char * prompt = NULL;
     char * command = NULL;
     char * line = NULL;
@@ -211,7 +221,7 @@ int display_prompt(int var) {
     command = malloc(BUFFER_SIZE * sizeof(char));
     
     if (prompt == NULL || command == NULL) {
-        result = 1;
+        last_return = 1;
         goto cleanup;
     }
 
@@ -219,24 +229,26 @@ int display_prompt(int var) {
     make_prompt(prompt, var);
     
     line = readline(prompt);
+    if (line == NULL) {
+        goto cleanup;
+    }
     add_history(line);
     memmove(command, line, strlen(line) + 1);
 
     free(line);
     free(prompt);
 
-    result = handle_line(command);
-
-    return display_prompt(result);
+    last_return = handle_line(command);
+    return display_prompt(last_return);
 
     cleanup:
     free(line);
     free(prompt);
     free(command);
-    return result;
+    return last_return;
 }
 
 int main() {
     rl_outstream = stderr;
-    display_prompt(-1);
+    return display_prompt(last_return);
 }
