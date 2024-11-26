@@ -15,6 +15,7 @@ int cd(cmd_info *cmd) {
             strncpy(last_dir, cwd, PATH_MAX);
             return EXIT_SUCCESS;
         }
+        perror("cd");
         return EXIT_FAILURE;
     }
     if (cmd->opt && strcmp(cmd->opt, "-") == 0) { // Cas option '-' : return au dernier répertoire
@@ -22,6 +23,7 @@ int cd(cmd_info *cmd) {
             strncpy(last_dir, cwd, PATH_MAX);
             return EXIT_SUCCESS;
         }
+        fprintf(stderr, "cd: Aucun répertoire précédent enregistré\n");
         return EXIT_FAILURE;
     }
     if (cmd->args) { // Cas avec argument (chemin vers un répertoire)
