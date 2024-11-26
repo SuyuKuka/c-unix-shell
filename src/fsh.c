@@ -58,7 +58,9 @@ int call_function (cmd_info * cmd) {
         return fsh_exit(cmd);
     } else if (strcmp(cmd -> name, "ftype") == 0) {
         return ftype(cmd);
-    } else {
+    } else if (strcmp(cmd -> name, "cd") == 0) { 
+        return cd(cmd);
+    }else {
         return externalcmd(cmd);
     }
 }
