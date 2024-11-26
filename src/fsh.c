@@ -230,7 +230,6 @@ int display_prompt(int var) {
     
     line = readline(prompt);
     if (line == NULL) {
-        last_return = 0;
         goto cleanup;
     }
     add_history(line);
@@ -251,5 +250,5 @@ int display_prompt(int var) {
 
 int main() {
     rl_outstream = stderr;
-    display_prompt(last_return);
+    return display_prompt(last_return);
 }
