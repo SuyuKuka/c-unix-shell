@@ -215,18 +215,20 @@ void make_prompt(char * prompt, int var) {
 }
 
 int display_prompt(int var) {
-    char * prompt = NULL;
-    char * command = NULL;
     char * line = NULL;
-    prompt = malloc(BUFFER_SIZE * sizeof(char));
-    command = malloc(BUFFER_SIZE * sizeof(char));
+    char * prompt = calloc(BUFFER_SIZE, sizeof(char));
+    char * command = calloc(BUFFER_SIZE, sizeof(char));
     
     if (prompt == NULL || command == NULL) {
         last_return = 1;
         goto cleanup;
     }
 
-    getcwd(prompt, BUFFER_SIZE);
+    if (getcwd(prompt, BUFFER_SIZE) == NULL) {
+        perror("display_prompt");
+        last_return = 1;
+        goto cleanup;
+    }
     make_prompt(prompt, var);
     
     line = readline(prompt);
