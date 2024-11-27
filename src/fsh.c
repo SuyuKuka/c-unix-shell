@@ -68,7 +68,7 @@ int exec_for_cmd(for_info * f) {
     //Copie de la ligne original de l'argument.
     if (file_arg == 1) {
         copy_args = calloc(strlen(f -> command -> args) + 1, sizeof(char));
-        strcpy(copy_args, f -> command -> args);
+        memmove(copy_args, f -> command -> args, strlen(f -> command -> args) + 1);
     }
 
     while((entry = readdir(dirp)) != NULL) {
