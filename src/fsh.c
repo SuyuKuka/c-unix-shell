@@ -44,6 +44,7 @@ int exec_for_cmd(for_info * f) {
     struct dirent * entry = NULL;
     struct stat s; 
     int file_arg = -1;
+    char * copy_args = NULL;
     DIR * dirp = opendir(f -> directory); 
     if (dirp == NULL) {  
         perror("Référence invalide"); 
@@ -56,21 +57,31 @@ int exec_for_cmd(for_info * f) {
         goto error;
     }
     
-    file_arg = strcmp("$F", f -> command -> args);
+    if (strstr(f -> command -> args, "$F") != NULL) {
+        file_arg = 1;
+    }
     
     if (f->directory[strlen(f -> directory) - 1] != '/') {
         strcat(f -> directory, "/");
     }
     memmove(path, f -> directory, strlen(f -> directory) + 1);
+    //Copie de la ligne original de l'argument.
+    if (file_arg == 1) {
+        copy_args = calloc(strlen(f -> command -> args) + 1, sizeof(char));
+        strcpy(copy_args, f -> command -> args);
+    }
 
     while((entry = readdir(dirp)) != NULL) {
         memmove(path + strlen(f -> directory), entry -> d_name, strlen(entry -> d_name) + 1);
         if (lstat(path, &s) == 0) {
             if(entry -> d_name[0] != '.' && S_ISREG(s.st_mode)) {
-                if  (file_arg == 0) {
-                    memmove(f -> command -> args, path, strlen(path) + 1);
+                if  (file_arg == 1) {
+                    replace_var(f -> command, path);
                 }
                 int n = call_function(f -> command);
+                if (file_arg == 1) {
+                    memmove(f -> command -> args, copy_args, strlen(copy_args) + 1);
+                }
                 if (n > result) {
                     result = n;
                 }
@@ -83,12 +94,14 @@ int exec_for_cmd(for_info * f) {
     }
 
     free(path);
+    free(copy_args);
     closedir(dirp);
     destroy_for_info(f);
     return result;
 
     error:
     free(path);
+    free(copy_args);
     destroy_for_info(f);
     return result;
 }

@@ -101,3 +101,63 @@ void handle_for_cmd(for_info * f, char * line) {
         cmd_format(line, f -> command);
     }
 }
+
+int replace_var(cmd_info * cmd, char * path) {
+    char * replaced = calloc(512, sizeof(char));
+    if (replaced == NULL) {
+        goto error;
+    }
+    size_t path_len = strlen(path);
+    size_t i = 0;
+    char * tmp = NULL;
+    while (cmd -> args[i] != '\0') {
+        if (cmd -> args[i] != '$') {
+           replaced[strlen(replaced)] = cmd -> args[i];
+           i++;
+        } else {
+            if (cmd -> args[i] != '\0' && cmd -> args[i+1] == 'F' 
+            && (isspace(cmd -> args[i+2]) != 0 || cmd -> args[i+2] == '\0')) {
+                memmove(replaced + strlen(replaced), path, path_len);
+            }
+            i += 2;
+        }
+    }
+    memmove(cmd -> args, replaced, strlen(replaced) + 1);
+    free(replaced);
+    return 0;
+
+    error:
+    puts("error");
+    free(replaced);
+    return 1;
+}
+
+int replace_F(cmd_info * cmd, char * path) {
+    char * replaced = calloc(512, sizeof(char));
+    if (replaced == NULL) {
+        goto error;
+    }
+    size_t path_len = strlen(path);
+    size_t i = 0;
+    char * tmp = NULL;
+    while (cmd -> args[i] != '\0') {
+        if (cmd -> args[i] != '$') {
+           replaced[strlen(replaced)] = cmd -> args[i];
+           i++;
+        } else {
+            if (cmd -> args[i] != '\0' && cmd -> args[i+1] == 'F' 
+            && (isspace(cmd -> args[i+2]) != 0 || cmd -> args[i+2] == '\0')) {
+                memmove(replaced + strlen(replaced), path, path_len);
+            }
+            i += 2;
+        }
+    }
+    memmove(cmd -> args, replaced, strlen(replaced) + 1);
+    free(replaced);
+    return 0;
+
+    error:
+    puts("error");
+    free(replaced);
+    return 1;
+}
