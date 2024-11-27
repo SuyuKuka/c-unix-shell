@@ -7,83 +7,165 @@
 #include <ctype.h>
 #include "cmd.h"
 
-int split(const char *str, char **argv) {
-    int argc = 0;
-    const char *start = str;
-    int len = strlen(str);
-    char *arg = malloc(len + 1);
-
-    if (!arg) {
-        perror("malloc");
-        return -1;
-    }
-
-    int arg_len = 0;
-    for (int i = 0; i <= len; i++) {
-        if (isspace(str[i]) || str[i] == '\0') {
-            if (arg_len > 0) {
-                arg[arg_len] = '\0';
-                argv[argc] = malloc(arg_len + 1);
-                if (argv[argc] == NULL) {
-                    free(arg);
-                    perror("malloc");
-                    return -1;
-                }
-                
-                memcpy(argv[argc], arg, arg_len + 1);
-                argc++;
-                arg_len = 0; 
-            }
-        } else {
-            arg[arg_len++] = str[i];
+void destroy_split(char ** arr, int * size) {
+    if (arr != NULL) {
+        for (size_t i = 0; i < *size; i++) {
+            free(arr[i]);
         }
     }
+    free(arr);
+}
 
-    free(arg);
-    return argc;
+char ** split(cmd_info * cmd, int * size) {
+    char ** cmd_split = NULL;
+    size_t split_index = 0;
+    int i = 0;
+    size_t space = 0;
+    size_t opt_len = strlen(cmd -> opt);
+    size_t args_len = strlen(cmd -> args);
+ 
+    if (strlen(cmd -> opt) > 0) {
+        while(cmd -> opt[i] != '\0') {
+            if(isspace(cmd -> opt[i]) != 0) {
+                space++;
+            }
+            i++;
+        }
+        space++;
+        i = 0;
+    }
+
+    if (strlen(cmd -> args) > 0) {
+        while(cmd -> args[i] != '\0') {
+            if(isspace(cmd -> args[i]) != 0) {
+                space++;
+            }
+            i++;
+        }
+        space++;
+        i = 0;
+    }
+
+    //Taille : le nombre de paramètres séparés d'espace plus le nom de la commande.  
+    *size = space + 1;
+    cmd_split = (char **) malloc((*size + 1) * sizeof(char *));
+    if (cmd_split == NULL) {
+        *size = 0;
+        goto error;
+    }
+    
+    cmd_split[split_index] = calloc(strlen(cmd -> name) + 1, sizeof(char));
+    if (cmd_split[split_index] == NULL) {
+        goto error;
+    }
+    memcpy(cmd_split[split_index], cmd -> name, strlen(cmd -> name) + 1);
+    split_index++;
+
+    // //TODO : Déléguer à une fonction la copie.
+    if (opt_len > 0) {
+        char * tmp = NULL;
+        size_t tmp_len = 0;
+        tmp = calloc(strlen(cmd -> opt) + 1, sizeof(char));
+        if (tmp == NULL) {goto error;}
+        while(cmd -> opt[i] != '\0') {
+            if (isspace(cmd -> opt[i]) == 0) {
+                tmp[strlen(tmp)] = cmd -> opt[i];
+            } else {
+                cmd_split[split_index] = malloc(strlen(tmp) + 1 * sizeof(char));
+                if (cmd_split[split_index] == NULL) {
+                    *size = split_index;
+                    goto error;
+                }
+                memmove(cmd_split[split_index], tmp, strlen(tmp) + 1);
+                split_index++;
+                tmp_len = strlen(tmp);
+                for (size_t t = 0; t < tmp_len; t++) {
+                    tmp[t] = '\0';
+                }
+            }
+            i++;
+        }
+        cmd_split[split_index] = malloc(strlen(tmp) + 1 * sizeof(char));
+        if (cmd_split[split_index] == NULL) {
+            *size = split_index;
+            goto error;
+        }
+        memmove(cmd_split[split_index], tmp, strlen(tmp) + 1);
+        split_index++;
+        free(tmp);
+        tmp = NULL;
+        i = 0;
+    }
+
+    if (args_len > 0) {
+        char * tmp = NULL;
+        size_t tmp_len = 0;
+        tmp = calloc(strlen(cmd -> args) + 1, sizeof(char));
+        if (tmp == NULL) {goto error;}
+        while(cmd -> args[i] != '\0') {
+            if (isspace(cmd -> args[i]) == 0) {
+                tmp[strlen(tmp)] = cmd -> args[i];
+            } else {
+                cmd_split[split_index] = malloc(strlen(tmp) + 1 * sizeof(char));
+                if (cmd_split[split_index] == NULL) {
+                    *size = split_index;
+                    goto error;
+                }
+                memmove(cmd_split[split_index], tmp, strlen(tmp) + 1);
+                split_index++;
+                tmp_len = strlen(tmp);
+                for (size_t t = 0; t < tmp_len; t++) {
+                    tmp[t] = '\0';
+                }
+            }
+            i++;
+        }
+        cmd_split[split_index] = malloc(strlen(tmp) + 1 * sizeof(char));
+        if (cmd_split[split_index] == NULL) {
+            *size = split_index;
+            goto error;
+        }
+        memmove(cmd_split[split_index], tmp, strlen(tmp) + 1);
+        split_index++;
+        free(tmp);
+        tmp = NULL;
+    }
+
+    cmd_split[split_index] = NULL;
+    return cmd_split;
+
+    error:
+    destroy_split(cmd_split, size);
+    return NULL;
 }
 
 int externalcmd(cmd_info *cmd) { 
     pid_t pid = fork();
     if (pid == -1) {
         write(STDERR_FILENO, "Error with fork: problem creating a child process\n", 45);
-        return EXIT_FAILURE;
+        return 1;
     } else if (pid == 0) {
-        int argc = 0;
-        char **argv = malloc(4 * sizeof(char**));
-        if (!argv) {
-            perror("malloc");
-            _exit(EXIT_FAILURE);
+        char ** cmd_split = NULL;
+        int * size = NULL;
+        
+        size = calloc(1, sizeof(int));
+        if(size == NULL) {return 1;}        
+        
+        cmd_split = split(cmd, size);
+        if  (cmd_split == NULL) {
+            free(size);
+            _exit(1);
         }
 
-        argv[argc++] = cmd -> name;
-        if (strcmp(cmd -> opt, "") != 0) {
-            int nb_opt = split(cmd -> opt, argv + argc);
-            if (nb_opt < 0) {
-                free(argv);
-                perror("split opt");
-                return EXIT_FAILURE;
-            }
-            argc += nb_opt;
-        }
-
-        if (strcmp(cmd -> args, "") != 0) {
-            int nb_args = split(cmd -> args, argv + argc);
-            if (nb_args < 0) {
-                free(argv);
-                perror("split arg");
-                return EXIT_FAILURE;
-            }
-            argc += nb_args;
-        }
-
-        argv[argc] = NULL;
-
-        if (execvp(argv[0], argv) == -1) {
-            free(argv);
+        if (execvp(cmd_split[0], cmd_split) == -1) {
             perror("execvp");
-            _exit(EXIT_FAILURE);
+            destroy_split(cmd_split, size);
+            free(size);
+            _exit(1);
         }
+
+        destroy_split(cmd_split, size);
+        free(size);
     } else {
         int status;
         waitpid(pid, &status, 0);
@@ -94,6 +176,6 @@ int externalcmd(cmd_info *cmd) {
             }
         }
     }
-    return EXIT_SUCCESS;
+    return 0;
 }
 
