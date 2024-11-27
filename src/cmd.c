@@ -45,8 +45,11 @@ void cmd_format(char * line, cmd_info * cmd) {
             i++;
         }
         while(isspace(line[i]) != 0) {i++;}
-        if (line[i] != '\0') {
+        if (line[i] != '\0' && line[i] == '-') {
             strcat(cmd -> opt, " ");
+            memmove(line, line + i, strlen(line) - i + 1);
+            cmd_format(line, cmd);
+        } else if (line[i] != '\0') {
             memmove(line, line + i, strlen(line) - i + 1);
             cmd_format(line, cmd);
         }
@@ -56,8 +59,11 @@ void cmd_format(char * line, cmd_info * cmd) {
             i++;
         }
         while(isspace(line[i]) != 0) {i++;}
-        if (line[i] != '\0') {
+        if (line[i] != '\0' && line[i] != '-') {
             strcat(cmd -> args, " ");
+            memmove(line, line + i, strlen(line) - i + 1);
+            cmd_format(line, cmd);
+        } else if (line[i] != '\0') {
             memmove(line, line + i, strlen(line) - i + 1);
             cmd_format(line, cmd);
         }
