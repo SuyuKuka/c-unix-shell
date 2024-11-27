@@ -234,6 +234,10 @@ int display_prompt(int var) {
     line = readline(prompt);
     if (line == NULL) {
         goto cleanup;
+    } else if (strcmp(line, "") == 0) {
+        free(line);
+        free(prompt);
+        return display_prompt(last_return);
     }
     add_history(line);
     memmove(command, line, strlen(line) + 1);
