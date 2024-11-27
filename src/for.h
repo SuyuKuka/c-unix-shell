@@ -20,5 +20,6 @@ void destroy_for_info(for_info *);
 
 for_info * handle_for_line(char *);
 void handle_for_cmd(for_info *, char *);
+int replace_var(cmd_info *, char *);
 
 #endif

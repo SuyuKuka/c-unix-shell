@@ -44,6 +44,7 @@ int exec_for_cmd(for_info * f) {
     struct dirent * entry = NULL;
     struct stat s; 
     int file_arg = -1;
+    char * copy_args = NULL;
     DIR * dirp = opendir(f -> directory); 
     if (dirp == NULL) {  
         perror("Référence invalide"); 
@@ -56,21 +57,31 @@ int exec_for_cmd(for_info * f) {
         goto error;
     }
     
-    file_arg = strcmp("$F", f -> command -> args);
+    if (strstr(f -> command -> args, "$F") != NULL) {
+        file_arg = 1;
+    }
     
     if (f->directory[strlen(f -> directory) - 1] != '/') {
         strcat(f -> directory, "/");
     }
     memmove(path, f -> directory, strlen(f -> directory) + 1);
+    //Copie de la ligne original de l'argument.
+    if (file_arg == 1) {
+        copy_args = calloc(strlen(f -> command -> args) + 1, sizeof(char));
+        strcpy(copy_args, f -> command -> args);
+    }
 
     while((entry = readdir(dirp)) != NULL) {
         memmove(path + strlen(f -> directory), entry -> d_name, strlen(entry -> d_name) + 1);
         if (lstat(path, &s) == 0) {
             if(entry -> d_name[0] != '.' && S_ISREG(s.st_mode)) {
-                if  (file_arg == 0) {
-                    memmove(f -> command -> args, path, strlen(path) + 1);
+                if  (file_arg == 1) {
+                    if (replace_var(f -> command, path) != 0) {goto error;}
                 }
                 int n = call_function(f -> command);
+                if (file_arg == 1) {
+                    memmove(f -> command -> args, copy_args, strlen(copy_args) + 1);
+                }
                 if (n > result) {
                     result = n;
                 }
@@ -83,12 +94,14 @@ int exec_for_cmd(for_info * f) {
     }
 
     free(path);
+    free(copy_args);
     closedir(dirp);
     destroy_for_info(f);
     return result;
 
     error:
     free(path);
+    free(copy_args);
     destroy_for_info(f);
     return result;
 }
@@ -115,7 +128,7 @@ int handle_line(char * line) {
     
 
     if (strcmp(cmd -> name, "") == 0) {
-        result = 0;    
+        result = 0;
     } else if (strcmp(cmd -> name,"for") != 0) {
         if (line[i] != '\0') {
             memmove(line, line + i + 1, strlen(line) - i + 1);
@@ -173,19 +186,19 @@ void color_prompt(char * prompt, int var) {
 void make_prompt(char * prompt, int var) {
     size_t current_size = strlen(prompt);
     size_t size = PROMPT_SIZE + 1;
-    char * return_value = calloc(5,sizeof(char));
+    char * return_value = calloc(BUFFER_SIZE, sizeof(char));
 
     if (var == 255) { 
-        memmove(return_value, "[SIG]", 5);
+        return_value = "[SIG]";
     } else {
-        return_value[0] = '[';
+        strcat(return_value, "[");
         if (var == -1) {
-            return_value[1] = '0';
+            strcat(return_value, "0");
         } else {
-            return_value[1] = ((char) var) + '0';
+            sprintf(return_value + 1, "%d", var);
         }
-        return_value[2] = ']';
-        return_value[3] = '\0';
+        strcat(return_value, "]");
+        strcat(return_value, "\0");
     }
 
     size_t return_length = strlen(return_value);
@@ -234,6 +247,10 @@ int display_prompt(int var) {
     line = readline(prompt);
     if (line == NULL) {
         goto cleanup;
+    } else if (strcmp(line, "") == 0) {
+        free(line);
+        free(prompt);
+        return display_prompt(last_return);
     }
     add_history(line);
     memmove(command, line, strlen(line) + 1);
