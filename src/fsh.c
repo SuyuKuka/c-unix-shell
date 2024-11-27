@@ -76,7 +76,7 @@ int exec_for_cmd(for_info * f) {
         if (lstat(path, &s) == 0) {
             if(entry -> d_name[0] != '.' && S_ISREG(s.st_mode)) {
                 if  (file_arg == 1) {
-                    replace_var(f -> command, path);
+                    if (replace_var(f -> command, path) != 0) {goto error;}
                 }
                 int n = call_function(f -> command);
                 if (file_arg == 1) {
