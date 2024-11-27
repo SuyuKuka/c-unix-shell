@@ -115,7 +115,7 @@ int handle_line(char * line) {
     
 
     if (strcmp(cmd -> name, "") == 0) {
-        result = 0;    
+        result = 0;
     } else if (strcmp(cmd -> name,"for") != 0) {
         if (line[i] != '\0') {
             memmove(line, line + i + 1, strlen(line) - i + 1);
@@ -173,19 +173,19 @@ void color_prompt(char * prompt, int var) {
 void make_prompt(char * prompt, int var) {
     size_t current_size = strlen(prompt);
     size_t size = PROMPT_SIZE + 1;
-    char * return_value = calloc(5,sizeof(char));
+    char * return_value = calloc(BUFFER_SIZE, sizeof(char));
 
     if (var == 255) { 
-        memmove(return_value, "[SIG]", 5);
+        return_value = "[SIG]";
     } else {
-        return_value[0] = '[';
+        strcat(return_value, "[");
         if (var == -1) {
-            return_value[1] = '0';
+            strcat(return_value, "0");
         } else {
-            return_value[1] = ((char) var) + '0';
+            sprintf(return_value + 1, "%d", var);
         }
-        return_value[2] = ']';
-        return_value[3] = '\0';
+        strcat(return_value, "]");
+        strcat(return_value, "\0");
     }
 
     size_t return_length = strlen(return_value);

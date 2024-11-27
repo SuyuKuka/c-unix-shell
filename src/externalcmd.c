@@ -57,33 +57,27 @@ int externalcmd(cmd_info *cmd) {
         }
 
         argv[argc++] = cmd -> name;
-        // if (strcmp(cmd -> opt, "") != 0) {
-        //     int nb_opt = split(cmd -> opt, argv + argc);
-        //     if (nb_opt < 0) {
-        //         free(argv);
-        //         perror("split opt");
-        //         return EXIT_FAILURE;
-        //     }
-        //     argc += nb_opt;
-        // }
+        if (strcmp(cmd -> opt, "") != 0) {
+            int nb_opt = split(cmd -> opt, argv + argc);
+            if (nb_opt < 0) {
+                free(argv);
+                perror("split opt");
+                return EXIT_FAILURE;
+            }
+            argc += nb_opt;
+        }
 
-        // if (strcmp(cmd -> args, "") != 0) {
-        //     int nb_args = split(cmd -> args, argv + argc);
-        //     if (nb_args < 0) {
-        //         free(argv);
-        //         perror("split arg");
-        //         return EXIT_FAILURE;
-        //     }
-        //     argc += nb_args;
-        // }
+        if (strcmp(cmd -> args, "") != 0) {
+            int nb_args = split(cmd -> args, argv + argc);
+            if (nb_args < 0) {
+                free(argv);
+                perror("split arg");
+                return EXIT_FAILURE;
+            }
+            argc += nb_args;
+        }
 
         argv[argc] = NULL;
-
-        // for(int i = 0; i < argc + 1; i++) {
-        //     printf("argv[%d] = %s\n", i, argv[i]);
-        // }
-
-        // fprintf(stderr, "Commande executée: %s\n", argv[0]);
 
         if (execvp(argv[0], argv) == -1) {
             free(argv);
@@ -96,14 +90,8 @@ int externalcmd(cmd_info *cmd) {
         if (WIFEXITED(status)) {
             int exit_status = WEXITSTATUS(status);
             if (exit_status != 0) {
-                if (strcmp(cmd->name, "false") != 0) {
-                    write(STDERR_FILENO, "Error in child process\n", 24);
-                }
-                return EXIT_FAILURE;
+                return exit_status;
             }
-        } else {
-            write(STDERR_FILENO, "Child process did not exit normally\n", 36);
-            return EXIT_FAILURE;
         }
     }
     return EXIT_SUCCESS;
