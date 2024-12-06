@@ -111,6 +111,9 @@ int handle_line(char * line) {
     int result = 0;
     cmd_info * cmd = NULL;
     for_info * f = NULL;
+    int redirection_result = 0;
+    char * redirection_type = NULL;
+    char * redirection_file = NULL;
     cmd = cmd_info_init();
     if (cmd == NULL) {
         result = 1;
@@ -118,18 +121,70 @@ int handle_line(char * line) {
     }
     
     size_t i = 0;
-
-    while(isspace(line[i]) != 0) {i++;}
+    while (isspace(line[i]) != 0) { i++; }
    
-    while(isspace(line[i]) == 0 && line[i] != '\0') {
+    while (isspace(line[i]) == 0 && line[i] != '\0') {
         cmd -> name[i] = line[i];
         i++;
     }
-    
+
+    size_t j = i;
+    size_t k = 0;
+    while (line[j] != '\0') {
+        // Si une redirection est détectée
+        if (line[j] == '>' || line[j] == '<' || line[j] == '2') {
+            // On gere le type de redirection
+            redirection_type = malloc(BUFFER_SIZE * sizeof(char));
+            if (redirection_type == NULL) {
+                result = 1;
+                goto error;
+            }
+            k = 0;
+            redirection_type[k++] = line[j++];
+
+            while (!isspace(line[j]) && line[j] != '\0') {
+                redirection_type[k++] = line[j++];
+            }
+            redirection_type[k] = '\0';
+
+            // Ignorer les espaces avant le file
+            while (isspace(line[j]) != 0) { j++; }
+
+            // On gere le file de redirection
+            redirection_file = malloc(BUFFER_SIZE * sizeof(char));
+            if (redirection_file == NULL) {
+                result = 1;
+                goto error;
+            }
+
+            k = 0;
+            while (line[j] != '\0' && line[j] != '>') {
+                redirection_file[k++] = line[j++];
+            }
+            redirection_file[k] = '\0';
+
+            // On applique la redirection
+            redirection_result = redirection(redirection_type, redirection_file);
+            if (redirection_result != 0) {
+                result = 1;
+                goto error;
+            }
+
+            size_t start = j - k - strlen(redirection_type);
+            while (start > 0 && isspace(line[start - 1])) {
+                start--;
+            }
+
+            size_t end = j;
+            memmove(&line[start - 1], &line[end], strlen(line) - end + 1);
+            break;
+        }
+        j++;
+    }
 
     if (strcmp(cmd -> name, "") == 0) {
         result = 0;
-    } else if (strcmp(cmd -> name,"for") != 0) {
+    } else if (strcmp(cmd -> name, "for") != 0) {
         if (line[i] != '\0') {
             memmove(line, line + i + 1, strlen(line) - i + 1);
             cmd_format(line, cmd);
@@ -146,13 +201,19 @@ int handle_line(char * line) {
         }
         result = exec_for_cmd(f);
     }
+
+    close_redirection();
     free(line);
     destroy_cmd_info(cmd);
+    free(redirection_file);
+    free(redirection_type);
     return result;
     
     error:
     free(line);
     destroy_cmd_info(cmd);
+    free(redirection_file);
+    free(redirection_type);
     return result;
 }
 
