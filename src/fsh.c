@@ -111,6 +111,7 @@ int handle_line(char * line) {
     int result = 0;
     cmd_info * cmd = NULL;
     for_info * f = NULL;
+    if_info * iinfo = NULL;
     int redirection_result = 0;
     char * redirection_type = NULL;
     char * redirection_file = NULL;
@@ -184,6 +185,9 @@ int handle_line(char * line) {
 
     if (strcmp(cmd -> name, "") == 0) {
         result = 0;
+    } else if (strcmp(cmd->name, "if") == 0) {  // Implémentation du handle_if_line ici ?
+        iinfo = if_info_init();
+        result = handle_if_line(line, iinfo);
     } else if (strcmp(cmd -> name, "for") != 0) {
         if (line[i] != '\0') {
             memmove(line, line + i + 1, strlen(line) - i + 1);
@@ -205,6 +209,8 @@ int handle_line(char * line) {
     close_redirection();
     free(line);
     destroy_cmd_info(cmd);
+    destroy_if_info(iinfo); //
+    free(iinfo);    //
     free(redirection_file);
     free(redirection_type);
     return result;

@@ -67,7 +67,7 @@ int handle_if_line(char *line, if_info *info) {
         info->cmd_false = parse_cmd(cmd_false);
     }
 
-    return 0;
+    return execute_if(info);
 }
 
 // Exec commande if. Return 0 si succès, 1 si échec.
