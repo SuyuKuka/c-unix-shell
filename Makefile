@@ -22,15 +22,6 @@ c:
 	$(CC) -o fsh $(SRC)/*.c $(LIBS)
 	./fsh
 
-# Valgrind
-valgrind: all
-    valgrind --leak-check=full \
-            --show-leak-kinds=all \
-            --track-origins=yes \
-            --show-reachable=no \
-            --track-fds=yes \
-            --quiet ./fsh
-
 # Nettoyage des fichiers générés
 clean:
 	rm -f $(BUILD)/*.o fsh
