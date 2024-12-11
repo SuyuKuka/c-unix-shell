@@ -14,13 +14,20 @@ makedir:
 fsh:
 	$(CC) -o fsh $(SRC)/*.c $(LIBS)
 
+# Lancer le test
 test: 
 	$(CC) -o fsh $(SRC)/*.c $(LIBS)
 	./test.sh
 
+# Compiler et lancer le programme
 c:
 	$(CC) -o fsh $(SRC)/*.c $(LIBS)
 	./fsh
+
+# Compiler et lancer le programme avec le valgrind
+valgrind:
+	$(CC) -o fsh $(SRC)/*.c $(LIBS)
+	valgrind ./fsh
 
 # Nettoyage des fichiers générés
 clean:
