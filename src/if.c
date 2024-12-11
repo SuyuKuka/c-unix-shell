@@ -24,9 +24,120 @@ void destroy_if_info(if_info *info) {   // Libération de la mémoire associée 
 
 /*
 * Analyse une ligne de commande, vérifie si il s'agit d'un if. 
-* On scan token par token la ligne et remplit au fur et à mesure la struct if_info.
 * Return 0 si succès, 1 en cas d'erreur de syntaxe.
 */
+int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraîne pas de pb vu que pointeurs 
+    if(!line || !info) {
+        fprintf(stderr, SYNTAX_ERROR);
+        return 1;
+    }
+    char *cursor = line;
+
+    while (*cursor != '\0' && *cursor != ' ') cursor++; // Avance jusqu'au 1er espace puis check si mot=='if'
+    if (strncmp(line, "if", cursor - line) != 0) {
+        fprintf(stderr, SYNTAX_ERROR);
+        return 1;
+    }
+    cursor++; // on skip ' '
+
+    char *test_start = cursor;
+    while (*cursor != '\0' && *cursor != '{') cursor++; // Avance jusqu'à '{' puis check si on ne trouve pas fin
+    if (*cursor == '\0') {
+        fprintf(stderr, SYNTAX_ERROR);
+        return 1;
+    }
+    char *test_end = cursor;
+    cursor++;
+
+    // TEST
+    size_t test_len = test_end - test_start;
+    char *test = malloc(test_len + 1);  // +1 pour rajouter '\0'
+    if (!test) {
+        perror("malloc");
+        return 1;
+    }
+    memcpy(test, test_start, test_len);
+    test[test_len] = '\0';
+    info->test = parse_cmd(test);
+    free(test);
+
+    // CMD_TRUE
+    char *cmd_true_start = cursor;
+    while (*cursor != '\0' && *cursor != '}') cursor++; // Avance jusqu'à '}' puis check si on ne trouve pas fin
+    if (*cursor == '\0') {
+        fprintf(stderr, SYNTAX_ERROR);
+        return 1;
+    }
+    char *cmd_true_end = cursor;
+    cursor++;
+
+    size_t cmd_true_len = cmd_true_end - cmd_true_start;
+    char *cmd_true = malloc(cmd_true_len + 1);
+    if (!cmd_true) {
+        perror("malloc");
+        return 1;
+    }
+    memcpy(cmd_true, cmd_true_start, cmd_true_len);
+    cmd_true[cmd_true_len] = '\0';
+    info->cmd_true = parse_cmd(cmd_true);
+    free(cmd_true);
+
+    // Check si présence 'else'
+    while (*cursor == ' ') cursor++; // Ignore espaces
+    if (strncmp(cursor, "else", 4) == 0) {
+        cursor += 4; // Skip le "else"
+        while (*cursor == ' ') cursor++;
+
+        // CMD_FALSE
+        char *cmd_false_start = cursor;
+        while (*cursor != '\0' && *cursor != '}') cursor++; // Avance jusqu'à '}' puis check si on ne trouve pas fin
+        if (*cursor == '\0') {
+            fprintf(stderr, SYNTAX_ERROR);
+            return 1;
+        }
+        char *cmd_false_end = cursor;
+
+        size_t cmd_false_len = cmd_false_end - cmd_false_start;
+        char *cmd_false = malloc(cmd_false_len + 1);
+        if (!cmd_false) {
+            perror("malloc");
+            return 1;
+        }
+        memcpy(cmd_false, cmd_false_start, cmd_false_len);
+        cmd_false[cmd_false_len] = '\0';
+        info->cmd_false = parse_cmd(cmd_false);
+        free(cmd_false);
+    }
+
+    return execute_if(info);
+}
+
+// Exec commande if. Return 0 si succès, 1 si échec.
+int execute_if(if_info *info) {
+    if (!info || !info->test || !info->cmd_true) { // Pas info, ou pas de condition ni de true
+        fprintf(stderr, SYNTAX_ERROR);
+        return 1;
+    }
+
+    int test_result = execute_cmd(info->test);  // Exécute commande TEST
+    if (test_result == 0) {
+        // TEST réussi -> CMD_TRUE
+        return execute_cmd(info->cmd_true);
+    } else if (info->cmd_false) {
+        // TEST échoué et présence de CMD_FALSE -> CMD_FALSE
+        return execute_cmd(info->cmd_false);
+    }
+
+    // TEST échoué, pas de CMD_FALSE
+    return 0;
+}
+
+// ancienne version au cas où
+/*
+* Analyse une ligne de commande, vérifie si il s'agit d'un if. 
+* On scan token par token la ligne et remplit au fur et à mesure la struct if_info.
+* Return 0 si succès, 1 en cas d'erreur de syntaxe.
+
 int handle_if_line(char *line, if_info *info) {
     if (!line || !info) {   // Si l'un des deux arg est vide
         fprintf(stderr, SYNTAX_ERROR);
@@ -69,23 +180,4 @@ int handle_if_line(char *line, if_info *info) {
 
     return execute_if(info);
 }
-
-// Exec commande if. Return 0 si succès, 1 si échec.
-int execute_if(if_info *info) {
-    if (!info || !info->test || !info->cmd_true) { // Pas info, ou pas de condition ni de true
-        fprintf(stderr, SYNTAX_ERROR);
-        return 1;
-    }
-
-    int test_result = execute_cmd(info->test);  // Exécute commande TEST
-    if (test_result == 0) {
-        // TEST réussi -> CMD_TRUE
-        return execute_cmd(info->cmd_true);
-    } else if (info->cmd_false) {
-        // TEST échoué et présence de CMD_FALSE -> CMD_FALSE
-        return execute_cmd(info->cmd_false);
-    }
-
-    // TEST échoué, pas de CMD_FALSE
-    return 0;
-}
+*/
