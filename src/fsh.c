@@ -132,7 +132,7 @@ int handle_line(char * line) {
     size_t k = 0;
     while (line[j] != '\0') {
         // Si une redirection est détectée
-        if (line[j] == '>' || line[j] == '<' || line[j] == '2') {
+        if (line[j] == '>' || line[j] == '<' || (line[j] == '2' && (line[j + 1] == '>' || line[j + 1] == '<'))) {
             // On gere le type de redirection
             redirection_type = malloc(BUFFER_SIZE * sizeof(char));
             if (redirection_type == NULL) {
@@ -170,13 +170,12 @@ int handle_line(char * line) {
                 goto error;
             }
 
-            size_t start = j - k - strlen(redirection_type);
-            while (start > 0 && isspace(line[start - 1])) {
-                start--;
+            size_t start_redirection = j - k - strlen(redirection_type) - 1;
+            while (start_redirection > 0 && isspace(line[start_redirection - 1])) {
+                start_redirection--;
             }
 
-            size_t end = j;
-            memmove(&line[start - 1], &line[end], strlen(line) - end + 1);
+            while (line[start_redirection] != '\0') { line[start_redirection] = '\0'; start_redirection++; }
             break;
         }
         j++;
