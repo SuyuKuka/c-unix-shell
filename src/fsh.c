@@ -106,14 +106,87 @@ int exec_for_cmd(for_info * f) {
     return result;
 }
 
+int handle_redirection(char * line, size_t i) {
+    int result = 0;
+    int redirection_result = 0;
+    char * redirection_type = NULL;
+    char * redirection_file = NULL;
+    size_t pos = i;
+    size_t size = 0;
+
+    while (line[pos] != '\0') {
+        // Si une redirection est détectée
+        if (line[pos] == '>' || line[pos] == '<' || (line[pos] == '2' && (line[pos + 1] == '>' || line[pos + 1] == '<'))) {
+            // On gere le type de redirection
+            redirection_type = malloc(BUFFER_SIZE * sizeof(char));
+            if (redirection_type == NULL) {
+                result = 1;
+                goto error;
+            }
+            size = 0;
+            redirection_type[size++] = line[pos++];
+
+            while (!isspace(line[pos]) && line[pos] != '\0') {
+                redirection_type[size++] = line[pos++];
+            }
+            redirection_type[size] = '\0';
+
+            // Ignorer les espaces avant le file
+            while (isspace(line[pos]) != 0) { pos++; }
+
+            // On gere le file de redirection
+            redirection_file = malloc(BUFFER_SIZE * sizeof(char));
+            if (redirection_file == NULL) {
+                result = 1;
+                goto error;
+            }
+
+            size = 0;
+            while (line[pos] != '\0' && !isspace(line[pos])) {
+                redirection_file[size++] = line[pos++];
+            }
+            redirection_file[size] = '\0';
+
+            // On applique la redirection
+            redirection_result = redirection(redirection_type, redirection_file);
+            if (redirection_result != 0) {
+                result = 1;
+                goto error;
+            }
+
+            // Redirection multiples
+            if (handle_redirection(line, pos) != 0) {
+                result = 1;
+                goto error;
+            }
+
+            // Suppresion de la redirection
+            size_t redirection_size = pos - strlen(redirection_file) - strlen(redirection_type) - 1;
+            while (redirection_size > 0 && isspace(line[redirection_size - 1])) {
+                redirection_size--;
+            }
+
+            while (line[redirection_size] != '\0') { line[redirection_size] = '\0'; redirection_size++; }
+            break;
+        }
+        pos++;
+    }
+
+    free(redirection_type);
+    free(redirection_file);
+    return result;
+
+    error:
+    free(redirection_type);
+    free(redirection_file);
+    return result;
+}
+
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
 int handle_line(char * line) {
     int result = 0;
     cmd_info * cmd = NULL;
     for_info * f = NULL;
-    int redirection_result = 0;
-    char * redirection_type = NULL;
-    char * redirection_file = NULL;
     cmd = cmd_info_init();
     if (cmd == NULL) {
         result = 1;
@@ -128,58 +201,9 @@ int handle_line(char * line) {
         i++;
     }
 
-    size_t j = i;
-    size_t k = 0;
-    while (line[j] != '\0') {
-        // Si une redirection est détectée
-        if (line[j] == '>' || line[j] == '<' || line[j] == '2') {
-            // On gere le type de redirection
-            redirection_type = malloc(BUFFER_SIZE * sizeof(char));
-            if (redirection_type == NULL) {
-                result = 1;
-                goto error;
-            }
-            k = 0;
-            redirection_type[k++] = line[j++];
-
-            while (!isspace(line[j]) && line[j] != '\0') {
-                redirection_type[k++] = line[j++];
-            }
-            redirection_type[k] = '\0';
-
-            // Ignorer les espaces avant le file
-            while (isspace(line[j]) != 0) { j++; }
-
-            // On gere le file de redirection
-            redirection_file = malloc(BUFFER_SIZE * sizeof(char));
-            if (redirection_file == NULL) {
-                result = 1;
-                goto error;
-            }
-
-            k = 0;
-            while (line[j] != '\0' && line[j] != '>') {
-                redirection_file[k++] = line[j++];
-            }
-            redirection_file[k] = '\0';
-
-            // On applique la redirection
-            redirection_result = redirection(redirection_type, redirection_file);
-            if (redirection_result != 0) {
-                result = 1;
-                goto error;
-            }
-
-            size_t start = j - k - strlen(redirection_type);
-            while (start > 0 && isspace(line[start - 1])) {
-                start--;
-            }
-
-            size_t end = j;
-            memmove(&line[start - 1], &line[end], strlen(line) - end + 1);
-            break;
-        }
-        j++;
+    if (handle_redirection(line, i) != 0) {
+        result = 1;
+        goto error;
     }
 
     if (strcmp(cmd -> name, "") == 0) {
@@ -205,15 +229,11 @@ int handle_line(char * line) {
     close_redirection();
     free(line);
     destroy_cmd_info(cmd);
-    free(redirection_file);
-    free(redirection_type);
     return result;
     
     error:
     free(line);
     destroy_cmd_info(cmd);
-    free(redirection_file);
-    free(redirection_type);
     return result;
 }
 
