@@ -126,16 +126,16 @@ int handle_line(char * line) {
             goto error;
         }
 
-        size_t i = 0;
-        while (isspace(line_cmd[i]) != 0) { i++; }
+        size_t pos = 0;
+        while (isspace(line_cmd[pos]) != 0) { pos++; }
 
-        while (isspace(line_cmd[i]) == 0 && line_cmd[i] != '\0') {
-            cmd -> name[i] = line_cmd[i];
-            i++;
+        size_t i = 0;
+        while (isspace(line_cmd[pos]) == 0 && line_cmd[pos] != '\0') {
+            cmd -> name[i++] = line_cmd[pos++];
         }
         cmd -> name[i] = '\0';
 
-        if (handle_redirection(line_cmd, i) != 0) {
+        if (handle_redirection(line_cmd, pos) != 0) {
             result = 1;
             goto error;
         }
@@ -143,14 +143,14 @@ int handle_line(char * line) {
         if (strcmp(cmd -> name, "") == 0) {
             result = 0;
         } else if (strcmp(cmd -> name, "for") != 0) {
-            if (line_cmd[i] != '\0') {
-                memmove(line_cmd, line_cmd + i + 1, strlen(line_cmd) - i + 1);
+            if (line_cmd[pos] != '\0') {
+                memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
                 cmd_format(line_cmd, cmd);
             }
             result = call_function(cmd);
         } else {
-            if (line_cmd[i] != '\0') {
-                memmove(line_cmd, line_cmd + i + 1, strlen(line_cmd) - i + 1);
+            if (line_cmd[pos] != '\0') {
+                memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
             }
             f = handle_for_line(line_cmd);
             if (f == NULL) {
@@ -218,6 +218,9 @@ char ** handle_cmd(char * line) {
             pos++;
             nb_cmd++;
             pos_cmd = 0;
+            while (isspace(line[pos]) != 0) {
+                pos++;
+            }
             continue;
         }
         cmd[nb_cmd][pos_cmd++] = line[pos++];
