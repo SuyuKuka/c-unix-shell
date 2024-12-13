@@ -107,48 +107,159 @@ int exec_for_cmd(for_info * f) {
 }
 
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
-int handle_line(char * line) {
+int handle_line(char * line) { 
+    char ** cmds = handle_cmd(line);
+    if (cmds == NULL) {
+        free(line);
+        return EXIT_FAILURE;
+    }
+
     int result = 0;
     cmd_info * cmd = NULL;
     for_info * f = NULL;
+    for (size_t all = 0; cmds[all] != NULL; all++) {
+        char * line_cmd = cmds[all];
+        result = 0;
+        cmd = cmd_info_init();
+        if (cmd == NULL) {
+            result = 1;
+            goto error;
+        }
+
+        size_t pos = 0;
+        while (isspace(line_cmd[pos]) != 0) { pos++; }
+
+        size_t i = 0;
+        while (isspace(line_cmd[pos]) == 0 && line_cmd[pos] != '\0') {
+            cmd -> name[i++] = line_cmd[pos++];
+        }
+        cmd -> name[i] = '\0';
+
+        if (handle_redirection(line_cmd, pos) != 0) {
+            result = 1;
+            goto error;
+        }
+
+        if (strcmp(cmd -> name, "") == 0) {
+            result = 0;
+        } else if (strcmp(cmd -> name, "for") != 0) {
+            if (line_cmd[pos] != '\0') {
+                memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
+                cmd_format(line_cmd, cmd);
+            }
+            result = call_function(cmd);
+        } else {
+            if (line_cmd[pos] != '\0') {
+                memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
+            }
+            f = handle_for_line(line_cmd);
+            if (f == NULL) {
+                result = 1;
+                goto error;
+            }
+            result = exec_for_cmd(f);
+        }
+
+        close_redirection();
+        if (cmd != NULL) {
+            destroy_cmd_info(cmd);
+            cmd = NULL;
+        }
+    }
+
+    if (cmds != NULL) {
+        for (size_t j = 0; cmds[j] != NULL; j++) {
+            free(cmds[j]);
+        }
+        free(cmds);
+    }
+    free(line);
+    return result;
+
+error:
+    close_redirection();
+    if (cmd != NULL) {
+            destroy_cmd_info(cmd);
+            cmd = NULL;
+        }
+    if (cmds != NULL) {
+        for (size_t j = 0; cmds[j] != NULL; j++) {
+            free(cmds[j]);
+        }
+        free(cmds);
+    }
+    free(line);
+    return result;
+}
+
+char ** handle_cmd(char * line) {
+    size_t pos = 0, nb_cmd = 0, pos_cmd = 0;
+    char ** cmd = calloc(BUFFER_SIZE, sizeof(char *));
+    if (cmd == NULL) {
+        perror("calloc");
+        return NULL;
+    }
+
+    while (line[pos] != '\0') {
+        if (cmd[nb_cmd] == NULL) {
+            cmd[nb_cmd] = calloc(BUFFER_SIZE, sizeof(char));
+            if (cmd[nb_cmd] == NULL) {
+                perror("calloc cmd");
+                for (size_t i = 0; i < nb_cmd; i++) {
+                    free(cmd[i]);
+                }
+                free(cmd);
+                return NULL;
+            }
+        }
+
+        if (line[pos] == ';') {
+            cmd[nb_cmd][pos_cmd] = '\0';
+            pos++;
+            nb_cmd++;
+            pos_cmd = 0;
+            while (isspace(line[pos]) != 0) {
+                pos++;
+            }
+            continue;
+        }
+        cmd[nb_cmd][pos_cmd++] = line[pos++];
+    }
+
+    if (cmd[nb_cmd] != NULL) {
+        cmd[nb_cmd][pos_cmd] = '\0';
+    }
+
+    cmd[nb_cmd + 1] = NULL;
+    return cmd;
+}
+
+int handle_redirection(char * line, size_t i) {
+    int result = 0;
     int redirection_result = 0;
     char * redirection_type = NULL;
     char * redirection_file = NULL;
-    cmd = cmd_info_init();
-    if (cmd == NULL) {
-        result = 1;
-        goto error;
-    }
-    
-    size_t i = 0;
-    while (isspace(line[i]) != 0) { i++; }
-   
-    while (isspace(line[i]) == 0 && line[i] != '\0') {
-        cmd -> name[i] = line[i];
-        i++;
-    }
+    size_t pos = i;
+    size_t size = 0;
 
-    size_t j = i;
-    size_t k = 0;
-    while (line[j] != '\0') {
-        // Si une redirection est détectée
-        if (line[j] == '>' || line[j] == '<' || (line[j] == '2' && (line[j + 1] == '>' || line[j + 1] == '<'))) {
+    while (line[pos] != '\0') {
+        if (line[pos] == '>' || line[pos] == '<' || (line[pos] == '2' && (line[pos + 1] == '>' || line[pos + 1] == '<'))) {
             // On gere le type de redirection
             redirection_type = malloc(BUFFER_SIZE * sizeof(char));
             if (redirection_type == NULL) {
                 result = 1;
                 goto error;
             }
-            k = 0;
-            redirection_type[k++] = line[j++];
+            size = 0;
+            redirection_type[size++] = line[pos++];
 
-            while (!isspace(line[j]) && line[j] != '\0') {
-                redirection_type[k++] = line[j++];
+            while (!isspace(line[pos]) && line[pos] != '\0') {
+                redirection_type[size++] = line[pos++];
             }
-            redirection_type[k] = '\0';
+            redirection_type[size] = '\0';
 
             // Ignorer les espaces avant le file
-            while (isspace(line[j]) != 0) { j++; }
+            while (isspace(line[pos]) != 0) { pos++; }
 
             // On gere le file de redirection
             redirection_file = malloc(BUFFER_SIZE * sizeof(char));
@@ -157,11 +268,11 @@ int handle_line(char * line) {
                 goto error;
             }
 
-            k = 0;
-            while (line[j] != '\0' && line[j] != '>') {
-                redirection_file[k++] = line[j++];
+            size = 0;
+            while (line[pos] != '\0' && !isspace(line[pos])) {
+                redirection_file[size++] = line[pos++];
             }
-            redirection_file[k] = '\0';
+            redirection_file[size] = '\0';
 
             // On applique la redirection
             redirection_result = redirection(redirection_type, redirection_file);
@@ -170,49 +281,31 @@ int handle_line(char * line) {
                 goto error;
             }
 
-            size_t start_redirection = j - k - strlen(redirection_type) - 1;
-            while (start_redirection > 0 && isspace(line[start_redirection - 1])) {
-                start_redirection--;
+            // Redirection multiples
+            if (handle_redirection(line, pos) != 0) {
+                result = 1;
+                goto error;
             }
 
-            while (line[start_redirection] != '\0') { line[start_redirection] = '\0'; start_redirection++; }
+            // Suppresion de la redirection du line
+            size_t redirection_size = pos - strlen(redirection_file) - strlen(redirection_type) - 1;
+            while (redirection_size > 0 && isspace(line[redirection_size - 1])) {
+                redirection_size--;
+            }
+
+            while (line[redirection_size] != '\0') { line[redirection_size] = '\0'; redirection_size++; }
             break;
         }
-        j++;
+        pos++;
     }
 
-    if (strcmp(cmd -> name, "") == 0) {
-        result = 0;
-    } else if (strcmp(cmd -> name, "for") != 0) {
-        if (line[i] != '\0') {
-            memmove(line, line + i + 1, strlen(line) - i + 1);
-            cmd_format(line, cmd);
-        }
-        result = call_function(cmd);
-    } else {
-        if (line[i] != '\0') {
-            memmove(line, line + i + 1, strlen(line) - i + 1);
-        }
-        f = handle_for_line(line);
-        if (f == NULL) {
-            result = 1;
-            goto error;
-        }
-        result = exec_for_cmd(f);
-    }
-
-    close_redirection();
-    free(line);
-    destroy_cmd_info(cmd);
-    free(redirection_file);
     free(redirection_type);
+    free(redirection_file);
     return result;
-    
+
     error:
-    free(line);
-    destroy_cmd_info(cmd);
-    free(redirection_file);
     free(redirection_type);
+    free(redirection_file);
     return result;
 }
 
