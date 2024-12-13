@@ -1,9 +1,10 @@
 #ifndef IF
 #define IF
 #include "cmd.h"
+#include "cmdutils.h"
 #include <unistd.h>
 
-#define SYNTAX_ERROR "If invalide.\n"
+#define SYNTAX_ERR "If invalide.\n"
 
 typedef struct if_info {
     cmd_info *test;         // Commande TEST; voir histoire de test pipeline

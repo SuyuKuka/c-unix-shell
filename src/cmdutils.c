@@ -1,0 +1,132 @@
+#include "cmdutils.h"
+
+cmd_info *parse_cmd(const char *cmd) {
+    if (!cmd) {
+        return NULL;  // Commande vide
+    }
+    cmd_info *info = malloc(sizeof(cmd_info));
+    if (!info) {
+        perror("malloc");
+        return NULL;
+    }
+    info->name = NULL;
+    info->opt = NULL;
+    info->args = NULL;
+
+    const char *cursor = cmd;   // Début du nom de la commande
+    while (*cursor == ' ') {
+        cursor++;
+    }
+    const char *name_start = cursor;
+    while (*cursor != ' ' && *cursor != '\0') { // Fin du nom de la commande
+        cursor++;
+    }
+    size_t name_len = cursor - name_start;
+
+    if (name_len > 0) { // Allouer & copier nom
+        info->name = malloc(name_len + 1);
+        if (!info->name) {
+            perror("malloc");
+            free(info);
+            return NULL;
+        }
+        memcpy(info->name, name_start, name_len);
+        info->name[name_len] = '\0';
+    }
+
+    while (*cursor == ' ') {    // Début de l'option
+        cursor++;
+    }
+    const char *opt_start = cursor;
+    while (*cursor != ' ' && *cursor != '\0') { // Fin de l'option
+        cursor++;
+    }
+    size_t opt_len = cursor - opt_start;
+
+    if (opt_len > 0) {  // Allouer & copier option
+        info->opt = malloc(opt_len + 1);
+        if (!info->opt) {
+            perror("malloc");
+            free(info->name);
+            free(info);
+            return NULL;
+        }
+        memcpy(info->opt, opt_start, opt_len);
+        info->opt[opt_len] = '\0';
+    }
+
+    while (*cursor == ' ') {    // Début des arguments
+        cursor++;
+    }
+    const char *args_start = cursor;
+    if (*args_start != '\0') {  // Allouer & copier arguments (tout reste de la chaîne)
+        size_t args_len = strlen(args_start);
+        info->args = malloc(args_len + 1);
+        if (!info->args) {
+            perror("malloc");
+            free(info->name);
+            free(info->opt);
+            free(info);
+            return NULL;
+        }
+        memcpy(info->args, args_start, args_len);
+        info->args[args_len] = '\0';
+    }
+
+    return info;
+}
+
+
+int execute_cmd(cmd_info *cmd) {
+    if (!cmd || !cmd->name) {
+        fprintf(stderr, "Commande invalide\n");
+        return 1;
+    }
+    size_t argc = 0;
+    if (cmd->opt) argc++;
+    if (cmd->args) argc++;
+
+    char **argv = malloc((argc + 2) * sizeof(char *));  // +1 pour le nom, +1 pour NULL
+    if (!argv) {
+        perror("malloc");
+        return 1;
+    }
+    argv[0] = cmd->name;  // Nom commande
+    size_t index = 1;
+    if (cmd->opt) {
+        argv[index] = cmd->opt;  // Option
+        index++;
+    }
+    if (cmd->args) {
+        argv[index] = cmd->args;  // Arguments
+        index++;
+    }
+    argv[index] = NULL;  // Terminaison
+
+    pid_t pid = fork(); // Création child process pour exe la commande
+    if (pid < 0) {
+        perror("fork");
+        free(argv);
+        return 1;
+    }
+    if (pid == 0) {
+        // Process child : exe la commande
+        execvp(cmd->name, argv);
+        perror("execvp");  // Si execvp échoue
+        free(argv);
+        exit(1);
+    }
+    
+    int status; // Process parent : wait fin de l'exe du child
+    if (waitpid(pid, &status, 0) < 0) {
+        perror("waitpid");
+        free(argv);
+        return 1;
+    }
+    free(argv);
+
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        return 0;   // succès
+    }
+    return 1;   // échec
+}

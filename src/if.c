@@ -28,14 +28,14 @@ void destroy_if_info(if_info *info) {   // Libération de la mémoire associée 
 */
 int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraîne pas de pb vu que pointeurs 
     if(!line || !info) {
-        fprintf(stderr, SYNTAX_ERROR);
+        fprintf(stderr, SYNTAX_ERR);
         return 1;
     }
     char *cursor = line;
 
     while (*cursor != '\0' && *cursor != ' ') cursor++; // Avance jusqu'au 1er espace puis check si mot=='if'
     if (strncmp(line, "if", cursor - line) != 0) {
-        fprintf(stderr, SYNTAX_ERROR);
+        fprintf(stderr, SYNTAX_ERR);
         return 1;
     }
     cursor++; // on skip ' '
@@ -43,7 +43,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     char *test_start = cursor;
     while (*cursor != '\0' && *cursor != '{') cursor++; // Avance jusqu'à '{' puis check si on ne trouve pas fin
     if (*cursor == '\0') {
-        fprintf(stderr, SYNTAX_ERROR);
+        fprintf(stderr, SYNTAX_ERR);
         return 1;
     }
     char *test_end = cursor;
@@ -65,7 +65,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     char *cmd_true_start = cursor;
     while (*cursor != '\0' && *cursor != '}') cursor++; // Avance jusqu'à '}' puis check si on ne trouve pas fin
     if (*cursor == '\0') {
-        fprintf(stderr, SYNTAX_ERROR);
+        fprintf(stderr, SYNTAX_ERR);
         return 1;
     }
     char *cmd_true_end = cursor;
@@ -92,7 +92,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
         char *cmd_false_start = cursor;
         while (*cursor != '\0' && *cursor != '}') cursor++; // Avance jusqu'à '}' puis check si on ne trouve pas fin
         if (*cursor == '\0') {
-            fprintf(stderr, SYNTAX_ERROR);
+            fprintf(stderr, SYNTAX_ERR);
             return 1;
         }
         char *cmd_false_end = cursor;
@@ -115,7 +115,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
 // Exec commande if. Return 0 si succès, 1 si échec.
 int execute_if(if_info *info) {
     if (!info || !info->test || !info->cmd_true) { // Pas info, ou pas de condition ni de true
-        fprintf(stderr, SYNTAX_ERROR);
+        fprintf(stderr, SYNTAX_ERR);
         return 1;
     }
 
@@ -132,9 +132,7 @@ int execute_if(if_info *info) {
     return 0;
 }
 
-// ancienne version au cas où
-/*
-* Analyse une ligne de commande, vérifie si il s'agit d'un if. 
+/*   Analyse une ligne de commande, vérifie si il s'agit d'un if.
 * On scan token par token la ligne et remplit au fur et à mesure la struct if_info.
 * Return 0 si succès, 1 en cas d'erreur de syntaxe.
 
