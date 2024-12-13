@@ -193,7 +193,7 @@ error:
 }
 
 char ** handle_cmd(char * line) {
-    size_t pos = 0, nb_cmd = 0, pos_cmd = 0;
+    size_t pos = 0, nb_cmd = 0, pos_cmd = 0, for_cmd = 0;
     char ** cmd = calloc(BUFFER_SIZE, sizeof(char *));
     if (cmd == NULL) {
         perror("calloc");
@@ -213,7 +213,17 @@ char ** handle_cmd(char * line) {
             }
         }
 
-        if (line[pos] == ';') {
+        if (line[pos] == '{') {
+            for_cmd++;
+            cmd[nb_cmd][pos_cmd++] = line[pos++];
+            continue;
+        } else if (line[pos] == '}') {
+            for_cmd--;
+            cmd[nb_cmd][pos_cmd++] = line[pos++];
+            continue;
+        }
+
+        if (line[pos] == ';' && for_cmd == 0) {
             cmd[nb_cmd][pos_cmd] = '\0';
             pos++;
             nb_cmd++;
