@@ -107,19 +107,19 @@ int exec_for_cmd(for_info * f) {
 }
 
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
-int handle_line(char * line) {
+int handle_line(char * line) { 
     char ** cmds = handle_cmd(line);
+    if (cmds == NULL) {
+        free(line);
+        return EXIT_FAILURE;
+    }
+
     int result = 0;
     cmd_info * cmd = NULL;
     for_info * f = NULL;
     for (size_t all = 0; cmds[all] != NULL; all++) {
-        if (cmds[all] == NULL) {
-            break;
-        }
         char * line_cmd = cmds[all];
         result = 0;
-        cmd = NULL;
-        f = NULL;
         cmd = cmd_info_init();
         if (cmd == NULL) {
             result = 1;
@@ -133,6 +133,7 @@ int handle_line(char * line) {
             cmd -> name[i] = line_cmd[i];
             i++;
         }
+        cmd -> name[i] = '\0';
 
         if (handle_redirection(line_cmd, i) != 0) {
             result = 1;
@@ -158,41 +159,56 @@ int handle_line(char * line) {
             }
             result = exec_for_cmd(f);
         }
+
         close_redirection();
-        destroy_cmd_info(cmd);
+        if (cmd != NULL) {
+            destroy_cmd_info(cmd);
+            cmd = NULL;
+        }
     }
 
-    for (size_t j = 0; cmds[j] != NULL; j++) {
-        free(cmds[j]);
+    if (cmds != NULL) {
+        for (size_t j = 0; cmds[j] != NULL; j++) {
+            free(cmds[j]);
+        }
+        free(cmds);
     }
-    free(cmds);
     free(line);
     return result;
 
-    error:
+error:
     close_redirection();
-    for (size_t j = 0; cmds[j] != NULL; j++) {
-        free(cmds[j]);
+    if (cmd != NULL) {
+            destroy_cmd_info(cmd);
+            cmd = NULL;
+        }
+    if (cmds != NULL) {
+        for (size_t j = 0; cmds[j] != NULL; j++) {
+            free(cmds[j]);
+        }
+        free(cmds);
     }
-    free(cmds);
     free(line);
-    destroy_cmd_info(cmd);
     return result;
 }
 
 char ** handle_cmd(char * line) {
     size_t pos = 0, nb_cmd = 0, pos_cmd = 0;
-    char ** cmd = malloc(BUFFER_SIZE * sizeof(char *));
+    char ** cmd = calloc(BUFFER_SIZE, sizeof(char *));
     if (cmd == NULL) {
-        perror("malloc");
+        perror("calloc");
         return NULL;
     }
 
     while (line[pos] != '\0') {
         if (cmd[nb_cmd] == NULL) {
-            cmd[nb_cmd] = malloc(BUFFER_SIZE * sizeof(char));
+            cmd[nb_cmd] = calloc(BUFFER_SIZE, sizeof(char));
             if (cmd[nb_cmd] == NULL) {
-                perror("malloc");
+                perror("calloc cmd");
+                for (size_t i = 0; i < nb_cmd; i++) {
+                    free(cmd[i]);
+                }
+                free(cmd);
                 return NULL;
             }
         }
@@ -202,10 +218,8 @@ char ** handle_cmd(char * line) {
             pos++;
             nb_cmd++;
             pos_cmd = 0;
-            // while (isspace(line[pos]) != 0) { pos++; }
             continue;
         }
-
         cmd[nb_cmd][pos_cmd++] = line[pos++];
     }
 
@@ -213,10 +227,7 @@ char ** handle_cmd(char * line) {
         cmd[nb_cmd][pos_cmd] = '\0';
     }
 
-    for (size_t i = 0; i <= nb_cmd; i++) {
-        printf("Commande: %s\n", cmd[i]);
-    }
-
+    cmd[nb_cmd + 1] = NULL;
     return cmd;
 }
 
