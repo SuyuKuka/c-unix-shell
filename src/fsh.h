@@ -25,6 +25,8 @@
 #define CYAN "\001\033[36m\002"
 int call_function (cmd_info *);
 int handle_line(char *);
+char ** handle_cmd(char *);
+int handle_redirection(char *, size_t);
 void color_prompt(char *, int);
 void make_prompt(char *, int);
 int display_prompt(int);
