@@ -363,11 +363,15 @@ void color_prompt(char * prompt, int var) {
 /** Adapte la taille du prompt et remplie le reste de '\0'. */
 void make_prompt(char * prompt, int var) {
     size_t current_size = strlen(prompt);
-    size_t size = PROMPT_SIZE + 1;
+    //Ne pas compter $_
+    size_t size = PROMPT_SIZE - 2;
     char * return_value = calloc(BUFFER_SIZE, sizeof(char));
 
     if (var == 255) { 
-        return_value = "[SIG]";
+        strcat(return_value, "[255]\0");
+
+        //TODO: Remplacer par SIG une fois que c'est demandé.
+        //strcat(return_value, "[SIG]");
     } else {
         strcat(return_value, "[");
         if (var == -1) {
@@ -381,7 +385,6 @@ void make_prompt(char * prompt, int var) {
 
     size_t return_length = strlen(return_value);
     if (current_size > PROMPT_SIZE) {
-        size = size - return_length;
         memmove(prompt, prompt+(current_size - size), size);
         prompt[size] = '\0';
         memmove(prompt, return_value, return_length);
