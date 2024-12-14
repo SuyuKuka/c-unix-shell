@@ -7,7 +7,7 @@ for_info * for_info_init() {
     f -> directory = calloc(DIR_SIZE , sizeof(char));
     if (f -> directory == NULL) {goto error;} 
 
-    f -> command = cmd_info_init();
+    f -> command = malloc(CMD_SIZE);
     if (f -> command == NULL) {goto error;}
 
     return f;
@@ -20,7 +20,7 @@ for_info * for_info_init() {
 void destroy_for_info(for_info * f) {
     if (f != NULL) {
         free(f -> directory);
-        destroy_cmd_info(f -> command);
+        free(f -> command);
     }
     free(f);
 }
@@ -76,12 +76,12 @@ for_info * handle_for_line(char * line) {
     //On supprime tous les espaces avant la ligne de commande.
     i++;
     while(isspace(line[i]) != 0) {i++;}
-    if (line[i] == '}' || line[i] == '\0') {
+    if (line[i] == '\0') {
         write(STDERR_FILENO, SYNTAX_ERROR, strlen(SYNTAX_ERROR));
         goto error;
     }
     memmove(line, line + i, strlen(line) - i + 1);
-    handle_for_cmd(f, line);
+    memmove(f -> command, line, strlen(line) + 1);
     return f;
 
     error:
@@ -89,40 +89,38 @@ for_info * handle_for_line(char * line) {
     return NULL;
 }
 
-void handle_for_cmd(for_info * f, char * line) {
-    size_t i = 0;
-    while(isspace(line[i]) != 0) {i++;}
-    while(isspace(line[i]) == 0 && line[i] != '\0') {
-        f -> command -> name[strlen(f -> command -> name)] = line[i];
-        i++;
-    }
-    if (line[i] != '\0') {
-        memmove(line, line + i + 1, strlen(line) - i + 1);
-        cmd_format(line, f -> command);
-    }
-}
+//Plus nécessaire après le jalon 1.
+// void handle_for_cmd(for_info * f, char * line) {
+//     size_t i = 0;
+//     while(isspace(line[i]) != 0) {i++;}
+//     while(isspace(line[i]) == 0 && line[i] != '\0') {
+//         f -> command -> name[strlen(f -> command -> name)] = line[i];
+//         i++;
+//     }
+//     if (line[i] != '\0') {
+//         memmove(line, line + i + 1, strlen(line) - i + 1);
+//         cmd_format(line, f -> command);
+//     }
+// }
 
-int replace_var(cmd_info * cmd, char * path) {
-    char * replaced = calloc(512, sizeof(char));
+int replace_var(char * line, char * path) {
+    char * replaced = calloc(CMD_SIZE, sizeof(char));
+
     if (replaced == NULL) {
         goto error;
     }
-    size_t path_len = strlen(path);
+
     size_t i = 0;
-    char * tmp = NULL;
-    while (cmd -> args[i] != '\0') {
-        if (cmd -> args[i] != '$') {
-           replaced[strlen(replaced)] = cmd -> args[i];
+    while (line[i] != '\0') {
+        if (line[i] != '$') {
+           replaced[strlen(replaced)] = line[i];
            i++;
-        } else {
-            if (cmd -> args[i] != '\0' && cmd -> args[i+1] == 'F' 
-            && (isspace(cmd -> args[i+2]) != 0 || cmd -> args[i+2] == '\0')) {
-                memmove(replaced + strlen(replaced), path, path_len);
-            }
-            i += 2;
+        } else if (line[i+1] == 'F') {
+            strcat(replaced, path);
+            i = i + 2;
         }
     }
-    memmove(cmd -> args, replaced, strlen(replaced) + 1);
+    memmove(line, replaced, strlen(replaced) + 1);
     free(replaced);
     return 0;
 

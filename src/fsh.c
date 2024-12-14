@@ -38,49 +38,64 @@ int call_function (cmd_info * cmd) {
     }
 }
 
-int exec_for_cmd(for_info * f) {
+int exec_for(for_info * f) {
     int result = 0;
     char * path = NULL; 
     struct dirent * entry = NULL;
     struct stat s; 
     int file_arg = -1;
     char * copy_args = NULL;
+
+    //Ouverture du fichier.
     DIR * dirp = opendir(f -> directory); 
     if (dirp == NULL) {  
         perror("Référence invalide"); 
         result = 1;
         goto error;
     }
+
+    //malloc d'un char * pour sauvegarder la référence courante.
     path = malloc(BUFFER_SIZE * sizeof(char));
     if (path == NULL) {
         result = 1;
         goto error;
     }
     
-    if (strstr(f -> command -> args, "$F") != NULL) {
+    //Vérification permettant de savoir si la variable F est présente.
+    if (strstr(f -> command, "$F") != NULL) {
         file_arg = 1;
     }
     
+    //Si le répertoire donné ne possède pas de '/' à la fin de la ligne on lui ajoute et on sauvegarde dans path.
     if (f->directory[strlen(f -> directory) - 1] != '/') {
         strcat(f -> directory, "/");
     }
     memmove(path, f -> directory, strlen(f -> directory) + 1);
-    //Copie de la ligne original de l'argument.
+
+    //Copie de la ligne de l'argument.
     if (file_arg == 1) {
-        copy_args = calloc(strlen(f -> command -> args) + 1, sizeof(char));
-        memmove(copy_args, f -> command -> args, strlen(f -> command -> args) + 1);
+        copy_args = calloc(strlen(f -> command) + 1, sizeof(char));
+        if (copy_args == NULL) {
+            result = 1;
+            goto error;
+        }
+        memmove(copy_args, f -> command, strlen(f -> command) + 1);
     }
 
+    //Boucle qui exécute le for.
     while((entry = readdir(dirp)) != NULL) {
-        memmove(path + strlen(f -> directory), entry -> d_name, strlen(entry -> d_name) + 1);
+        memmove(path + strlen(f -> directory), entry -> d_name, strlen(entry -> d_name) + 1);    
         if (lstat(path, &s) == 0) {
             if(entry -> d_name[0] != '.' && S_ISREG(s.st_mode)) {
                 if  (file_arg == 1) {
                     if (replace_var(f -> command, path) != 0) {goto error;}
                 }
-                int n = call_function(f -> command);
+                char * copy = malloc((strlen(f -> command) + 1) * sizeof(char));
+                if (copy == NULL) {goto error;}
+                memmove(copy, f -> command, strlen(f -> command) + 1);
+                int n = handle_line(copy);
                 if (file_arg == 1) {
-                    memmove(f -> command -> args, copy_args, strlen(copy_args) + 1);
+                    memmove(f -> command, copy_args, strlen(copy_args) + 1);
                 }
                 if (n > result) {
                     result = n;
@@ -154,10 +169,10 @@ int handle_line(char * line) {
             }
             f = handle_for_line(line_cmd);
             if (f == NULL) {
-                result = 1;
+                result = 2;
                 goto error;
             }
-            result = exec_for_cmd(f);
+            result = exec_for(f);
         }
 
         close_redirection();
@@ -330,7 +345,7 @@ void color_prompt(char * prompt, int var) {
         memmove(prompt, GREEN, color_len);
         memmove(prompt + color_len + var_len + cyan_len, prompt + color_len + var_len, strlen(prompt) - var_len);
         memmove(prompt + color_len + var_len, CYAN, cyan_len);
-    } else if (var == 1 || var == 255) {
+    } else if (var > 0) {
         color_len = strlen(RED);
         memmove(prompt + color_len, prompt, strlen(prompt));
         memmove(prompt, RED, color_len);

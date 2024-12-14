@@ -12,7 +12,7 @@
 
 typedef struct for_info {
     char * directory;
-    cmd_info * command;
+    char * command;
 } for_info;
 
 for_info * for_info_init();
@@ -20,6 +20,6 @@ void destroy_for_info(for_info *);
 
 for_info * handle_for_line(char *);
 void handle_for_cmd(for_info *, char *);
-int replace_var(cmd_info *, char *);
+int replace_var(char *, char *);
 
 #endif
