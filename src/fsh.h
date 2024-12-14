@@ -19,7 +19,7 @@
 #include "redirection.h"
 #define BUFFER_SIZE 512
 #define PROMPT_SIZE 30
-#define DEFAULT_COLOR "\033[00m"
+#define DEFAULT_COLOR "\001\033[00m\002"
 #define GREEN "\001\033[32m\002"
 #define RED "\001\033[91m\002"
 #define CYAN "\001\033[36m\002"
