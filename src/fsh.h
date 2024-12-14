@@ -31,7 +31,7 @@ void color_prompt(char *, int);
 void make_prompt(char *, int);
 int display_prompt(int);
 int fsh_exit(cmd_info *);
-int exec_for_cmd(for_info *);
+int exec_for(for_info *);
 int for_no_opt(cmd_info *);
 
 #endif
