@@ -82,6 +82,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
     }
     memcpy(test, test_start, test_len);
     test[test_len] = '\0';
+    printf("avant parse | test :%s\n", test);
     info->test = parse_cmd(test);
     free(test);
     if (!info->test) {  // Gestion Ã©chec pour TEST
@@ -109,6 +110,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
     }
     memcpy(cmd_true, cmd_true_start, cmd_true_len);
     cmd_true[cmd_true_len] = '\0';
+    printf("avant parse | cmd_true :%s\n", cmd_true);
     info->cmd_true = parse_cmd(cmd_true);
     free(cmd_true);
     if (!info->cmd_true) {  // Gestion Ã©chec pour CMD_TRUE
