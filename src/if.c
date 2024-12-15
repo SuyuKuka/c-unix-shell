@@ -83,7 +83,8 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
     memcpy(test, test_start, test_len);
     test[test_len] = '\0';
     printf("avant parse | test :%s\n", test);
-    info->test = trim(test);
+    info->test = test;
+    trim(info->test);
     free(test);
     if (!info->test) {  // Gestion Ã©chec pour TEST
         fprintf(stderr, "Erreur : parse_cmd a Ã©chouÃ© pour le test.\n");
@@ -113,9 +114,9 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
     printf("avant parse | cmd_true :%s\n", cmd_true);
     // Enlever les crochets
     size_t tstart = 0;
-    while (cmd_true[tstart] == '{' || cmd_true[tstart] == ' ') start++;
+    while (cmd_true[tstart] == '{' || cmd_true[tstart] == ' ') tstart++;
     size_t tend = cmd_true_len - 1;
-    while (cmd_true[tend] == '}' || cmd_true[tend] == ' ') end--;
+    while (cmd_true[tend] == '}' || cmd_true[tend] == ' ') tend--;
     cmd_true[tend + 1] = '\0';
     //
     info->cmd_true = parse_cmd(cmd_true);
@@ -152,9 +153,9 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
         cmd_false[cmd_false_len] = '\0';
         // Enlever les crochets
         size_t estart = 0;
-        while (cmd_false[estart] == '{' || cmd_false[estart] == ' ') start++;
+        while (cmd_false[estart] == '{' || cmd_false[estart] == ' ') estart++;
         size_t eend = cmd_false_len - 1;
-        while (cmd_false[eend] == '}' || cmd_false[eend] == ' ') end--;
+        while (cmd_false[eend] == '}' || cmd_false[eend] == ' ') eend--;
         cmd_false[eend + 1] = '\0';
         //
         info->cmd_false = parse_cmd(cmd_false);
