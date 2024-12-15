@@ -49,14 +49,29 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     }
     cursor++; // on skip ' '
 
-    char *test_start = cursor;
-    while (*cursor != '\0' && *cursor != '{') cursor++; // Avance jusqu'à '{' puis check si on ne trouve pas fin
-    if (*cursor == '\0') {
-        fprintf(stderr, SYNTAX_ERR);
+    if (*cursor != '[') {
+        fprintf(stderr, "Erreur : condition mal formée, '[' manquant.\n");
         return 1;
     }
-    char *test_end = cursor;
-    cursor++;
+    cursor++; // Passe '['
+
+    char *test_start = cursor;
+    size_t bracket_balance = 1;
+
+    while (*cursor != '\0' && bracket_balance > 0) {
+        if (*cursor == '[') bracket_balance++;
+        if (*cursor == ']') bracket_balance--;
+        cursor++;
+    }
+    if (bracket_balance != 0) {
+        fprintf(stderr, "Erreur : problème de crochets dans la condition TEST.\n");
+        return 1;
+    }
+    char *test_end = cursor - 1;  // Pos avant ']'
+    if (*test_end != ']') {
+        fprintf(stderr, "Erreur : ']' manquant à la fin de la condition.\n");
+        return 1;
+    }
 
     // TEST
     size_t test_len = test_end - test_start;

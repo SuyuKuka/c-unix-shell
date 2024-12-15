@@ -1,9 +1,9 @@
 #include "cmdutils.h"
 
 cmd_info *parse_cmd(const char *cmd) {
-    if (!cmd) {
-        return NULL;  // Commande vide
-    }
+    if (!cmd || *cmd == '\0') {
+    return NULL;    // CMD vide/invalide.
+}
     cmd_info *info = malloc(sizeof(cmd_info));
     if (!info) {
         perror("malloc");
