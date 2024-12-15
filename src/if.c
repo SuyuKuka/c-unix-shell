@@ -89,7 +89,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
         destroy_if_info(info);
         return 1;
     }
-    printf("Test: %s\n", info->test);
+    printf("Test:%s\n", (char *)info->test);
 
     // CMD_TRUE
     char *cmd_true_start = cursor;
@@ -116,7 +116,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
         destroy_if_info(info);
         return 1;
     }
-    printf("Cmd_true: %s\n", info->cmd_true);
+    printf("Cmd_true:%s\n", (char *)info->cmd_true);
 
     // Check si prÃ©sence 'else'
     while (*cursor == ' ') cursor++; // Ignore espaces
@@ -148,7 +148,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
             destroy_if_info(info);
             return 1;
         }
-        printf("Cmd_false: %s\n", info->cmd_false);
+        printf("Cmd_false:%s\n", (char *)info->cmd_false);
     }
 
     return execute_if(info);
