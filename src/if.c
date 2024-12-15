@@ -16,6 +16,10 @@ if_info *if_info_init() {   // Intialisation d'une struct if_info
 void destroy_if_info(if_info *info) {   // Libération de la mémoire associée à une struct if_info
     if (info) {
         if (info->test) {
+            if (info->test->name) destroy_cmd_info(info->test->name); // Libère 'name'
+            if (info->test->opt) destroy_cmd_info(info->test->opt);
+            if (info->test->args) destroy_cmd_info(info->test->args);
+
             destroy_cmd_info(info->test);
             info->test = NULL;
         }
@@ -88,9 +92,18 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     while (testend > test && isspace((unsigned char)*testend)) testend--;    // Supprime les espaces à droite
     *(testend + 1) = '\0';  // Ajoute un caractère de fin de chaîne
     printf("avant parse, trim du bled | test :%s\n", test);
-    printf("avant parse, trim du bled | testend :%s\n", testend); // ?
-    info->test = (cmd_info *)testend; // ou test ?
-    free(test);
+
+    cmd_info *new_cmd = malloc(sizeof(cmd_info));
+    if (!new_cmd) {
+        perror("malloc");
+        free(test);  // Libère la chaîne si l'allocation échoue
+        return 1;
+    }
+    new_cmd->name = test;     // chaîne brute dans 'name'
+    new_cmd->opt = NULL;
+    new_cmd->args = NULL;
+    info->test = new_cmd;
+
     if (!info->test) {  // Gestion échec pour TEST
         fprintf(stderr, "Erreur : parse_cmd a échoué pour le test.\n");
         destroy_if_info(info);
