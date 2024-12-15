@@ -83,7 +83,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
     memcpy(test, test_start, test_len);
     test[test_len] = '\0';
     printf("avant parse | test :%s\n", test);
-    info->test = parse_cmd(test);
+    info->test = trim(test);
     free(test);
     if (!info->test) {  // Gestion Ã©chec pour TEST
         fprintf(stderr, "Erreur : parse_cmd a Ã©chouÃ© pour le test.\n");
@@ -111,6 +111,13 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
     memcpy(cmd_true, cmd_true_start, cmd_true_len);
     cmd_true[cmd_true_len] = '\0';
     printf("avant parse | cmd_true :%s\n", cmd_true);
+    // Enlever les crochets
+    size_t tstart = 0;
+    while (cmd_true[tstart] == '{' || cmd_true[tstart] == ' ') start++;
+    size_t tend = cmd_true_len - 1;
+    while (cmd_true[tend] == '}' || cmd_true[tend] == ' ') end--;
+    cmd_true[tend + 1] = '\0';
+    //
     info->cmd_true = parse_cmd(cmd_true);
     free(cmd_true);
     if (!info->cmd_true) {  // Gestion Ã©chec pour CMD_TRUE
@@ -143,6 +150,13 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
         }
         memcpy(cmd_false, cmd_false_start, cmd_false_len);
         cmd_false[cmd_false_len] = '\0';
+        // Enlever les crochets
+        size_t estart = 0;
+        while (cmd_false[estart] == '{' || cmd_false[estart] == ' ') start++;
+        size_t eend = cmd_false_len - 1;
+        while (cmd_false[eend] == '}' || cmd_false[eend] == ' ') end--;
+        cmd_false[eend + 1] = '\0';
+        //
         info->cmd_false = parse_cmd(cmd_false);
         free(cmd_false);
         if (!info->cmd_false) {  // Gestion Ã©chec pour CMD_FALSE
