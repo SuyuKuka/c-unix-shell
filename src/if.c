@@ -83,8 +83,13 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     memcpy(test, test_start, test_len);
     test[test_len] = '\0';
     printf("avant parse | test :%s\n", test);
-    info->test = test;
-    trim(info->test);
+    while (isspace((unsigned char)*test)) test++; // Supprime les espaces à gauche
+    char *testend = test + strlen(test) - 1;
+    while (testend > test && isspace((unsigned char)*testend)) testend--;    // Supprime les espaces à droite
+    *(testend + 1) = '\0';  // Ajoute un caractère de fin de chaîne
+    printf("avant parse, trim du bled | test :%s\n", test);
+    printf("avant parse, trim du bled | testend :%s\n", testend); // ?
+    info->test = (cmd_info *)testend; // ou test ?
     free(test);
     if (!info->test) {  // Gestion échec pour TEST
         fprintf(stderr, "Erreur : parse_cmd a échoué pour le test.\n");
