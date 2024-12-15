@@ -1,5 +1,13 @@
 #include "cmdutils.h"
 
+void trim(char *str) {
+    if (str == NULL) return;
+    while (isspace((unsigned char)*str)) str++; // Supprime les espaces à gauche
+    char *end = str + strlen(str) - 1;
+    while (end > str && isspace((unsigned char)*end)) end--;    // Supprime les espaces à droite
+    *(end + 1) = '\0';  // Ajoute un caractère de fin de chaîne
+}
+
 cmd_info *parse_cmd(const char *cmd) {
     if (!cmd || *cmd == '\0') {
     return NULL;    // CMD vide/invalide.
@@ -32,6 +40,7 @@ cmd_info *parse_cmd(const char *cmd) {
         }
         memcpy(info->name, name_start, name_len);
         info->name[name_len] = '\0';
+        trim(info->name);
     }
 
     while (*cursor == ' ') {    // Début de l'option
@@ -53,6 +62,7 @@ cmd_info *parse_cmd(const char *cmd) {
         }
         memcpy(info->opt, opt_start, opt_len);
         info->opt[opt_len] = '\0';
+        trim(info->opt);
     }
 
     while (*cursor == ' ') {    // Début des arguments
@@ -71,6 +81,7 @@ cmd_info *parse_cmd(const char *cmd) {
         }
         memcpy(info->args, args_start, args_len);
         info->args[args_len] = '\0';
+        trim(info->args);
     }
 
     return info;
