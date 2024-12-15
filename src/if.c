@@ -15,9 +15,18 @@ if_info *if_info_init() {   // Intialisation d'une struct if_info
 
 void destroy_if_info(if_info *info) {   // Libération de la mémoire associée à une struct if_info
     if (info) {
-        if (info->test) destroy_cmd_info(info->test);
-        if (info->cmd_true) destroy_cmd_info(info->cmd_true);
-        if (info->cmd_false) destroy_cmd_info(info->cmd_false);
+        if (info->test) {
+            destroy_cmd_info(info->test);
+            info->test = NULL;
+        }
+        if (info->cmd_true) {
+            destroy_cmd_info(info->cmd_true);
+            info->cmd_true = NULL;
+        }
+        if (info->cmd_false) {
+            destroy_cmd_info(info->cmd_false);
+            info->cmd_false = NULL;
+        }
         free(info);
     }
 }
@@ -60,6 +69,11 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     test[test_len] = '\0';
     info->test = parse_cmd(test);
     free(test);
+    if (!info->test) {  // Gestion échec pour TEST
+        fprintf(stderr, "Erreur : parse_cmd a échoué pour le test.\n");
+        destroy_if_info(info);
+        return 1;
+    }
 
     // CMD_TRUE
     char *cmd_true_start = cursor;
@@ -81,6 +95,11 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     cmd_true[cmd_true_len] = '\0';
     info->cmd_true = parse_cmd(cmd_true);
     free(cmd_true);
+    if (!info->cmd_true) {  // Gestion échec pour CMD_TRUE
+        fprintf(stderr, "Erreur : parse_cmd a échoué pour la cmd_true.\n");
+        destroy_if_info(info);
+        return 1;
+    }
 
     // Check si présence 'else'
     while (*cursor == ' ') cursor++; // Ignore espaces
@@ -107,6 +126,11 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
         cmd_false[cmd_false_len] = '\0';
         info->cmd_false = parse_cmd(cmd_false);
         free(cmd_false);
+        if (!info->cmd_false) {  // Gestion échec pour CMD_FALSE
+            fprintf(stderr, "Erreur : parse_cmd a échoué pour la cmd_false.\n");
+            destroy_if_info(info);
+            return 1;
+        }
     }
 
     return execute_if(info);
@@ -120,16 +144,16 @@ int execute_if(if_info *info) {
     }
 
     int test_result = execute_cmd(info->test);  // Exécute commande TEST
-    if (test_result == 0) {
-        // TEST réussi -> CMD_TRUE
-        return execute_cmd(info->cmd_true);
-    } else if (info->cmd_false) {
-        // TEST échoué et présence de CMD_FALSE -> CMD_FALSE
-        return execute_cmd(info->cmd_false);
+    if (test_result != 0) {
+        if (info->cmd_false) {
+            // TEST échoué et présence de CMD_FALSE -> CMD_FALSE
+            return execute_cmd(info->cmd_false);
+        }
+        // TEST échoué, pas de CMD_FALSE
+        return 0;
     }
-
-    // TEST échoué, pas de CMD_FALSE
-    return 0;
+    // TEST réussi -> CMD_TRUE
+    return execute_cmd(info->cmd_true);
 }
 
 /*   Analyse une ligne de commande, vérifie si il s'agit d'un if.
