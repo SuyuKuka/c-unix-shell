@@ -40,7 +40,9 @@ cmd_info *parse_cmd(const char *cmd) {
         }
         memcpy(info->name, name_start, name_len);
         info->name[name_len] = '\0';
+        printf("parse_cmd, cmd->name avant trim : %s\n", info->name);
         trim(info->name);
+        printf("parse_cmd, cmd->name post trim : %s\n", info->name);
     }
 
     while (*cursor == ' ') {    // Début de l'option
@@ -62,7 +64,9 @@ cmd_info *parse_cmd(const char *cmd) {
         }
         memcpy(info->opt, opt_start, opt_len);
         info->opt[opt_len] = '\0';
+        printf("parse_cmd, cmd->opt avant trim : %s\n", info->opt);
         trim(info->opt);
+        printf("parse_cmd, cmd->opt post trim : %s\n", info->opt);
     }
 
     while (*cursor == ' ') {    // Début des arguments
@@ -81,7 +85,9 @@ cmd_info *parse_cmd(const char *cmd) {
         }
         memcpy(info->args, args_start, args_len);
         info->args[args_len] = '\0';
+        printf("parse_cmd, info->args avant trim : %s\n", info->args);
         trim(info->args);
+        printf("parse_cmd, info->args post trim : %s\n\n", info->args);
     }
 
     return info;
