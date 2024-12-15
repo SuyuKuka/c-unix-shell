@@ -122,6 +122,12 @@ int execute_cmd(cmd_info *cmd) {
     }
     if (pid == 0) {
         // Process child : exe la commande
+        if (cmd->name) {
+            printf("Commande à exécuter : %s\n", cmd->name);
+        }
+        for (size_t i = 0; argv[i] != NULL; i++) {
+            printf("Argument %zu : %s\n", i, argv[i]);
+        }
         execvp(cmd->name, argv);
         perror("execvp");  // Si execvp échoue
         free(argv);

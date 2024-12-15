@@ -210,7 +210,6 @@ int handle_line(char * line) {
     free(line);
     destroy_cmd_info(cmd);
     destroy_if_info(iinfo); //
-    free(iinfo);    //
     free(redirection_file);
     free(redirection_type);
     return result;
