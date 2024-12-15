@@ -19,11 +19,11 @@ void destroy_if_info(if_info *info) {   // LibÃ©ration de la mÃ©moire associÃ©e 
             destroy_cmd_info(info->test);
             info->test = NULL;
         }
-        if (info->cmd_true) {
+        if (info->cmd_true && info->cmd_true != info->test) {
             destroy_cmd_info(info->cmd_true);
             info->cmd_true = NULL;
         }
-        if (info->cmd_false) {
+        if (info->cmd_false && info->cmd_false != info->test && info->cmd_false != info->cmd_true) {
             destroy_cmd_info(info->cmd_false);
             info->cmd_false = NULL;
         }
@@ -74,6 +74,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
         destroy_if_info(info);
         return 1;
     }
+    printf("Test: %p\n", (void *)info->test);
 
     // CMD_TRUE
     char *cmd_true_start = cursor;
@@ -100,6 +101,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
         destroy_if_info(info);
         return 1;
     }
+    printf("Cmd_true: %p\n", (void *)info->cmd_true);
 
     // Check si prÃ©sence 'else'
     while (*cursor == ' ') cursor++; // Ignore espaces
@@ -131,6 +133,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraÃ
             destroy_if_info(info);
             return 1;
         }
+        printf("Cmd_false: %p\n", (void *)info->cmd_false);
     }
 
     return execute_if(info);

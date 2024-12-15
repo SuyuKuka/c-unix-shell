@@ -27,7 +27,7 @@ cmd_info *parse_cmd(const char *cmd) {
         info->name = malloc(name_len + 1);
         if (!info->name) {
             perror("malloc");
-            free(info);
+            destroy_cmd_info(info);
             return NULL;
         }
         memcpy(info->name, name_start, name_len);
@@ -47,8 +47,8 @@ cmd_info *parse_cmd(const char *cmd) {
         info->opt = malloc(opt_len + 1);
         if (!info->opt) {
             perror("malloc");
-            free(info->name);
-            free(info);
+            //free(info->name);
+            destroy_cmd_info(info);
             return NULL;
         }
         memcpy(info->opt, opt_start, opt_len);
@@ -64,9 +64,9 @@ cmd_info *parse_cmd(const char *cmd) {
         info->args = malloc(args_len + 1);
         if (!info->args) {
             perror("malloc");
-            free(info->name);
-            free(info->opt);
-            free(info);
+            //free(info->name);
+            //free(info->opt);
+            destroy_cmd_info(info);
             return NULL;
         }
         memcpy(info->args, args_start, args_len);
