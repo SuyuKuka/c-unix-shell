@@ -40,11 +40,11 @@ int call_function (cmd_info * cmd) {
 
 int handle_for(for_info * f) {
     int result = 0;
+    int n = 0;
     char * path = NULL; 
     struct dirent * entry = NULL;
     struct stat st; 
     int var = -1;
-    char * copy_args = NULL;
 
     //Ouverture du fichier.
     DIR * dirp = opendir(f -> directory); 
@@ -76,18 +76,20 @@ int handle_for(for_info * f) {
     while((entry = readdir(dirp)) != NULL) {
         memmove(path + strlen(f -> directory), entry -> d_name, strlen(entry -> d_name) + 1);    
         if (lstat(path, &st) == 0) {
-            if(entry -> d_name[0] != '.' && S_ISREG(s.st_mode)) {
+            if(entry -> d_name[0] != '.' && S_ISREG(st.st_mode)) {
                 char * copy = NULL;
                 if  (var == 1) {
-                    char * copy = malloc((strlen(f -> command) + 1) * sizeof(char));
-                    if (replace_var(f -> command, path) != 0) {goto error;}
+                    copy = replace_var(f -> command, path);
+                    if (copy == NULL) {
+                        goto error;
+                    }
+                    n = handle_line(copy);
+                } else {
+                    copy = malloc((strlen(f->command) + 1) * sizeof(char));
+                    memmove(copy, f -> command, strlen(f -> command) +1);
+                    n = handle_line(copy);
                 }
-                if (copy == NULL) {goto error;}
-                memmove(copy, f -> command, strlen(f -> command) + 1);
-                int n = handle_line(copy);
-                if (var == 1) {
-                    memmove(f -> command, copy_args, strlen(copy_args) + 1);
-                }
+
                 if (n > result) {
                     result = n;
                 }
@@ -100,16 +102,14 @@ int handle_for(for_info * f) {
     }
 
     free(path);
-    free(copy_args);
     closedir(dirp);
     destroy_for_info(f);
     return result;
 
     error:
     free(path);
-    free(copy_args);
     destroy_for_info(f);
-    return result;
+    return 1;
 }
 
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
