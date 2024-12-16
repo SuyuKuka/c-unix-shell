@@ -7,7 +7,7 @@
 #include <ctype.h>
 #include <sys/wait.h>   // includepath ?
 
-void trim(char *str);
+char *trim(char *str);
 
 cmd_info *parse_cmd(const char *cmd);
 
