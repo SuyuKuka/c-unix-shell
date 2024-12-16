@@ -109,7 +109,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra√
         destroy_if_info(info);
         return 1;
     }
-    printf("handle_if_line | Test atteint :%s\n", (char *)info->test);
+    printf("handle_if_line | Test atteint :%s\n", (char *)info->test->name);
 
     // CMD_TRUE
     char *cmd_true_start = cursor;
@@ -129,7 +129,6 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra√
     }
     memcpy(cmd_true, cmd_true_start, cmd_true_len);
     cmd_true[cmd_true_len] = '\0';
-    printf("avant parse | cmd_true :%s\n", cmd_true);
     // Enlever les crochets
     size_t tstart = 0;
     while (cmd_true[tstart] == '{' || cmd_true[tstart] == ' ') tstart++;
@@ -137,14 +136,29 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra√
     while (cmd_true[tend] == '}' || cmd_true[tend] == ' ') tend--;
     cmd_true[tend + 1] = '\0';
     //
-    info->cmd_true = parse_cmd(cmd_true);
-    free(cmd_true);
+    char *original_cmd_true = cmd_true;
+    cmd_true = cmd_true + tstart;
+    size_t new_len = tend - tstart + 1;
+    char *clean_cmd = malloc(new_len + 1);
+    if (!clean_cmd) {
+        perror("malloc");
+        free(original_cmd_true);
+        return 1;
+    }
+    memcpy(clean_cmd, cmd_true, new_len);
+    clean_cmd[new_len] = '\0';
+
+    trim(clean_cmd);
+    printf("avant parse & crochets | cmd_true :%s\n", clean_cmd);
+    info->cmd_true = parse_cmd(clean_cmd);
+    free(original_cmd_true);
+    free(clean_cmd);
     if (!info->cmd_true) {  // Gestion √©chec pour CMD_TRUE
         fprintf(stderr, "Erreur : parse_cmd a √©chou√© pour la cmd_true.\n");
         destroy_if_info(info);
         return 1;
     }
-    printf("handle_if_line | cmd_true atteint :%s\n", (char *)info->cmd_true);
+    printf("handle_if_line | cmd_true atteint :%s\n", (char *)info->cmd_true->name);
 
     // Check si pr√©sence 'else'
     while (*cursor == ' ') cursor++; // Ignore espaces
@@ -205,7 +219,6 @@ int execute_if(if_info *info) {
     }
     if (pid == 0) {
         // Child process: exe la commande "test"
-        printf("execute_if | pid == 0 atteint, execvp sur le bin et test\n"); //
         execvp(argv[0], argv);
         perror("execvp");  // Si execvp √©choue
         exit(1);
