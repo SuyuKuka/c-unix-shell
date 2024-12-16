@@ -191,7 +191,9 @@ for_info * handle_for_line(char * line) {
     //On réduit la ligne line à seulement la commande entre { };
     memmove(line, line + i, strlen(line) - i + 1);
     memmove(f -> command, line, strlen(line) + 1);
-    //init_options(f);
+    if (init_options(f) != 0) {
+        goto error;
+    }
     return f;
 
     error:
