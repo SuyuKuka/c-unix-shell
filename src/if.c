@@ -19,15 +19,18 @@ void destroy_if_info(if_info *info) {   // Libération de la mémoire associée 
             if (info->test->name) free(info->test->name); // Libère 'name', pob avec destroy_if_info de type
             if (info->test->opt) free(info->test->opt);
             if (info->test->args) free(info->test->args);
-
+    
+            printf("destroy_if_info | info->test\n");
             destroy_cmd_info(info->test);
             info->test = NULL;
         }
         if (info->cmd_true && info->cmd_true != info->test) {
+            printf("destroy_if_info | info->cmd_true\n");
             destroy_cmd_info(info->cmd_true);
             info->cmd_true = NULL;
         }
         if (info->cmd_false && info->cmd_false != info->test && info->cmd_false != info->cmd_true) {
+            printf("destroy_if_info | info->cmd_false\n");
             destroy_cmd_info(info->cmd_false);
             info->cmd_false = NULL;
         }
@@ -91,7 +94,6 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     char *testend = test + strlen(test) - 1;
     while (testend > test && isspace((unsigned char)*testend)) testend--;    // Supprime les espaces à droite
     *(testend + 1) = '\0';  // Ajoute un caractère de fin de chaîne
-    printf("avant parse, trim du bled | test :%s\n", test);
 
     cmd_info *new_cmd = malloc(sizeof(cmd_info));
     if (!new_cmd) {
@@ -148,10 +150,11 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     memcpy(clean_cmd, cmd_true, new_len);
     clean_cmd[new_len] = '\0';
 
-    trim(clean_cmd);
-    printf("avant parse & crochets | cmd_true :%s\n", clean_cmd);
+    clean_cmd = trim(clean_cmd);
     info->cmd_true = parse_cmd(clean_cmd);
+    printf("free(original_cmd_true)\n");
     free(original_cmd_true);
+    printf("free(clean_cmd)\n");
     free(clean_cmd);
     if (!info->cmd_true) {  // Gestion échec pour CMD_TRUE
         fprintf(stderr, "Erreur : parse_cmd a échoué pour la cmd_true.\n");

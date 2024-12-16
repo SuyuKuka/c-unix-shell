@@ -1,11 +1,20 @@
 #include "cmdutils.h"
-
+/*
 void trim(char *str) {
     if (str == NULL) return;
     while (isspace((unsigned char)*str)) str++; // Supprime les espaces à gauche
     char *end = str + strlen(str) - 1;
     while (end > str && isspace((unsigned char)*end)) end--;    // Supprime les espaces à droite
     *(end + 1) = '\0';  // Ajoute un caractère de fin de chaîne
+}*/
+char *trim(char *str) {
+    if (!str) return NULL;
+    char *start = str;
+    while (isspace((unsigned char)*start)) start++;
+    char *end = start + strlen(start) - 1;
+    while (end > start && isspace((unsigned char)*end)) end--;
+    *(end + 1) = '\0';
+    return start;  // Retourner un pointeur vers la partie "trimmed"
 }
 
 cmd_info *parse_cmd(const char *cmd) {
@@ -40,7 +49,7 @@ cmd_info *parse_cmd(const char *cmd) {
         }
         memcpy(info->name, name_start, name_len);
         info->name[name_len] = '\0';
-        trim(info->name);
+        info->name = trim(info->name);
     }
 
     while (*cursor == ' ') {    // Début de l'option
@@ -62,7 +71,7 @@ cmd_info *parse_cmd(const char *cmd) {
         }
         memcpy(info->opt, opt_start, opt_len);
         info->opt[opt_len] = '\0';
-        trim(info->opt);
+        info->opt = trim(info->opt);
     }
 
     while (*cursor == ' ') {    // Début des arguments
@@ -76,12 +85,13 @@ cmd_info *parse_cmd(const char *cmd) {
             perror("malloc");
             //free(info->name);
             //free(info->opt);
+            printf("PB | destroy_cmd_info if(!info->args) dans parse\n");
             destroy_cmd_info(info);
             return NULL;
         }
         memcpy(info->args, args_start, args_len);
         info->args[args_len] = '\0';
-        trim(info->args);
+        info->args = trim(info->args);
     }
 
     return info;
@@ -117,6 +127,7 @@ int execute_cmd(cmd_info *cmd) {
     pid_t pid = fork(); // Création child process pour exe la commande
     if (pid < 0) {
         perror("fork");
+        printf("free argv si pid < 0\n");
         free(argv);
         return 1;
     }
@@ -130,6 +141,7 @@ int execute_cmd(cmd_info *cmd) {
         }
         execvp(cmd->name, argv);
         perror("execvp");  // Si execvp échoue
+        printf("free argv dans pid == 0\n");
         free(argv);
         exit(1);
     }
@@ -137,9 +149,11 @@ int execute_cmd(cmd_info *cmd) {
     int status; // Process parent : wait fin de l'exe du child
     if (waitpid(pid, &status, 0) < 0) {
         perror("waitpid");
+        printf("free argv dans waitpid\n");
         free(argv);
         return 1;
     }
+    printf("free argv vers fin de execute_cmd\n");
     free(argv);
 
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
