@@ -209,6 +209,7 @@ int handle_line(char * line) {
     close_redirection();
     free(line);
     destroy_cmd_info(cmd);
+    printf(" FSH | destroy_if_info(iinfo)\n");
     destroy_if_info(iinfo); //
     free(redirection_file);
     free(redirection_type);
