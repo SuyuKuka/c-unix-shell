@@ -16,9 +16,9 @@ if_info *if_info_init() {   // Intialisation d'une struct if_info
 void destroy_if_info(if_info *info) {   // Libération de la mémoire associée à une struct if_info
     if (info) {
         if (info->test) {
-            if (info->test->name) destroy_cmd_info(info->test->name); // Libère 'name'
-            if (info->test->opt) destroy_cmd_info(info->test->opt);
-            if (info->test->args) destroy_cmd_info(info->test->args);
+            if (info->test->name) free(info->test->name); // Libère 'name', pob avec destroy_if_info de type
+            if (info->test->opt) free(info->test->opt);
+            if (info->test->args) free(info->test->args);
 
             destroy_cmd_info(info->test);
             info->test = NULL;
@@ -86,7 +86,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     }
     memcpy(test, test_start, test_len);
     test[test_len] = '\0';
-    printf("avant parse | test :%s\n", test);
+    // trim du bled
     while (isspace((unsigned char)*test)) test++; // Supprime les espaces à gauche
     char *testend = test + strlen(test) - 1;
     while (testend > test && isspace((unsigned char)*testend)) testend--;    // Supprime les espaces à droite
@@ -109,7 +109,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
         destroy_if_info(info);
         return 1;
     }
-    printf("Test:%s\n", (char *)info->test);
+    printf("handle_if_line | Test atteint :%s\n", (char *)info->test);
 
     // CMD_TRUE
     char *cmd_true_start = cursor;
@@ -144,7 +144,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
         destroy_if_info(info);
         return 1;
     }
-    printf("Cmd_true:%s\n", (char *)info->cmd_true);
+    printf("handle_if_line | cmd_true atteint :%s\n", (char *)info->cmd_true);
 
     // Check si présence 'else'
     while (*cursor == ' ') cursor++; // Ignore espaces
@@ -191,6 +191,47 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
 
 // Exec commande if. Return 0 si succès, 1 si échec.
 int execute_if(if_info *info) {
+    if (!info || !info->test || !info->test->name) {
+        fprintf(stderr, "Erreur : if_info mal formé.\n");
+        return 1;
+    }
+    // Construction de l'argument pour la commande "test"
+    char *argv[] = { "/usr/bin/test", info->test->name, NULL };
+
+     pid_t pid = fork();
+    if (pid < 0) {
+        perror("fork");
+        return 1;
+    }
+    if (pid == 0) {
+        // Child process: exe la commande "test"
+        printf("execute_if | pid == 0 atteint, execvp sur le bin et test\n"); //
+        execvp(argv[0], argv);
+        perror("execvp");  // Si execvp échoue
+        exit(1);
+    }
+    int status;
+    if (waitpid(pid, &status, 0) < 0) {
+        perror("waitpid");
+        return 1;
+    }
+
+    // Test réussi si le code de retour est 0
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        if (info->cmd_true) {
+            printf("execute_if | cmd_true atteint\n");
+            return execute_cmd(info->cmd_true);
+        }
+    } else {
+        if (info->cmd_false) {
+            return execute_cmd(info->cmd_false);
+        }
+    }
+    return 0;
+}
+
+/*
+int execute_if(if_info *info) {
     if (!info || !info->test || !info->cmd_true) { // Pas info, ou pas de condition ni de true
         fprintf(stderr, SYNTAX_ERR);
         return 1;
@@ -208,6 +249,7 @@ int execute_if(if_info *info) {
     // TEST réussi -> CMD_TRUE
     return execute_cmd(info->cmd_true);
 }
+*/
 
 /*   Analyse une ligne de commande, vérifie si il s'agit d'un if.
 * On scan token par token la ligne et remplit au fur et à mesure la struct if_info.
