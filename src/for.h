@@ -10,6 +10,7 @@
 #define TOO_MANY_OPT "Nombre d'options invalide.\n"
 #define INVALID_OPT "Options invalides.\n"
 #define INVALID_EXT "Extension invalide.\n"
+#define INVALID_TYPE "Option -t type invalide.\n"
 #define FILE_SIZE 512
 #define DIR_SIZE 512
 #define MAX_OPTIONS 8 //On compte aussi les dépendances des options ex: -e EXT = 2 
@@ -22,6 +23,18 @@ typedef struct for_info {
     char * command;
     char ** options;
     int opt_size;
+    //Des flags pour les options.
+    int opt_a;
+    int opt_r;
+
+    int opt_ext;
+    char * ext;
+
+    int * opt_type;
+    char file_type;
+
+    int opt_p;
+    int p_max;
     enum FOR_TYPE for_type;
 } for_info;
 
@@ -30,6 +43,6 @@ void destroy_for_info(for_info *);
 
 for_info * handle_for_line(char *);
 void handle_for_cmd(for_info *, char *);
-int replace_var(char *, char *);
+char * replace_var(char *, char *);
 
 #endif

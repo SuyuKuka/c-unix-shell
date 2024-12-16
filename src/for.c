@@ -11,8 +11,9 @@ for_info * for_info_init() {
     if (f -> command == NULL) {goto error;}
 
     f -> options = malloc((MAX_OPTIONS + 1) * sizeof(char *));
-    f -> options[MAX_OPTIONS + 1] = NULL;
     if (f -> options == NULL) {goto error;}
+
+    f -> options[MAX_OPTIONS] = NULL;
 
     f -> opt_size = 0;
 
@@ -35,12 +36,70 @@ void destroy_for_info(for_info * f) {
     free(f);
 }
 
+int init_options(for_info * f) {
+    size_t i = 0;
+    while (i < f -> opt_size) {
+        if (strcmp(f -> options[i], "-A") == 0) {
+            f -> opt_a = 1;
+        } else if (strcmp(f -> options[i], "-r") == 0) {
+            f -> opt_r = 1; 
+        } else if (strcmp(f -> options[i], "-e") == 0) {
+            if (i+1 >= f -> opt_size) {
+                write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
+                goto error;
+            } else if (f -> options[i+1][0] != '.') {
+                write(STDERR_FILENO, INVALID_EXT, strlen(INVALID_EXT));
+                goto error;
+            }
+            f -> ext = f -> options[i+1];
+            i++;
+        } else if (strcmp(f -> options[i], "-t") == 0) {
+            if (i+1 >= f -> opt_size) {
+                write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
+                goto error;
+            }
+            char * type = f -> options[i+1];
+            if (strcmp(type, "f") != 0 || strcmp(type, "d") != 0 || strcmp(type, "l") != 0 || strcmp(type, "p") != 0) {
+                write(STDERR_FILENO, INVALID_TYPE, strlen(INVALID_TYPE));
+                goto error;
+            }
+            type = NULL; 
+            f -> file_type = f -> options[i+1][0];
+            i++;
+        } else if (strcmp(f -> options[i], "-p") == 0) {
+            if (i+1 >= f -> opt_size) {
+                write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
+                goto error;
+            }
+            size_t length = strlen(f -> options[i+1]);
+            for (size_t j = 0; j < length; j++) {
+                if (!isdigit(f -> options[i+1][j])) {
+                    write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
+                    goto error;
+                }
+            }
+            f -> p_max = atoi(f -> options[i+1]);
+            i++;
+        } else {
+            write(STDERR_FILENO, INVALID_OPT,strlen(INVALID_OPT));
+            goto error;
+        }
+        i++;
+    }
+
+    return 0;
+
+    error:
+    return 2;
+}
+
 for_info * handle_for_line(char * line) {
     size_t i = 0;
     size_t end = strlen(line) - 1;
     for_info * f = NULL;
     char * opt_line = NULL;
     f = for_info_init();
+
     if (f == NULL) {goto error;} 
     while(isspace(line[i]) != 0) {i++;}
     if (line[i] == '\0') {
@@ -83,9 +142,11 @@ for_info * handle_for_line(char * line) {
     while(isspace(line[i]) != 0) {i++;}
 
     //Récupération des options.
-    f -> options[f -> opt_size] = calloc(OPTIONS_SIZE, sizeof(char)); 
-    if (f -> options[f -> opt_size] == NULL) {goto error;}
-    opt_line = f -> options[f -> opt_size];
+    if (line[i] != '{' && line[i] != '\0') {
+        f -> options[f -> opt_size] = calloc(OPTIONS_SIZE, sizeof(char)); 
+        if (f -> options[f -> opt_size] == NULL) {goto error;}
+        opt_line = f -> options[f -> opt_size];
+    }
     while(line[i] != '{' && line[i] != '\0') {
         //Elimination des espaces, ajout du caractère '\0' à la fin de l'option actuelle et incrémentation de la taille.
         if (isspace(line[i]) != 0) {
@@ -130,6 +191,7 @@ for_info * handle_for_line(char * line) {
     //On réduit la ligne line à seulement la commande entre { };
     memmove(line, line + i, strlen(line) - i + 1);
     memmove(f -> command, line, strlen(line) + 1);
+    //init_options(f);
     return f;
 
     error:
@@ -152,7 +214,7 @@ for_info * handle_for_line(char * line) {
 // }
 
 //Remplace les $F de line par path.
-int replace_var(char * line, char * path) {
+char * replace_var(char * line, char * path) {
     char * replaced = calloc(CMD_SIZE, sizeof(char));
 
     if (replaced == NULL) {
@@ -169,14 +231,11 @@ int replace_var(char * line, char * path) {
             i = i + 2;
         }
     }
-    memmove(line, replaced, strlen(replaced) + 1);
-    free(replaced);
-    return 0;
+    return replaced;
 
     error:
-    puts("error");
     free(replaced);
-    return 1;
+    return NULL;
 }
 
 for_info * copy_for_info (for_info * f) {
@@ -184,15 +243,6 @@ for_info * copy_for_info (for_info * f) {
     if (copy == NULL) { goto error; }
     memmove(copy -> directory, f -> directory, strlen(f -> directory) + 1); 
     memmove(copy -> command, f -> command, strlen(f -> command) + 1);
-
-    for (size_t i = 0; i < f -> opt_size; i++) {
-        copy -> opt_size = i;
-        copy -> options[i] = malloc(strlen(f -> options[i]) + 1);
-        if (copy == NULL) {
-            goto error;
-        }
-        memmove(copy -> options[i], f -> options[i], strlen(f -> options[i]) + 1);
-    }
 
     copy -> for_type = f -> for_type;
 
