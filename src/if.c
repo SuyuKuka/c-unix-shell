@@ -260,9 +260,31 @@ int execute_if(if_info *info) {
         fprintf(stderr, "Erreur : if_info mal formé.\n");
         return 1;
     }
-    // Construction de l'argument pour la commande "test"
-    char *argv[] = { "/usr/bin/test", info->test->name, NULL};
-    printf("execute_if | argument pour test : '%s'\n", info->test->name);
+    // Parsing manuel de test, à changer
+    char *test_args[4] = { "/usr/bin/test", NULL, NULL, NULL };
+    char *name = info->test->name;
+    int start = 0, arg_index = 1; // Index de l'argument actuel dans test_args
+    for (int i = 0; name[i] != '\0'; i++) {
+        if (name[i] == ' ') {
+            // On a trouvé un séparateur (espace), extrait l'argument
+            name[i] = '\0'; // Termine la chaîne actuelle
+            test_args[arg_index++] = &name[start];
+            start = i + 1; // Met à jour le début du prochain argument
+
+            if (arg_index >= 4) {
+                break; // On a extrait les trois arguments attendus
+            }
+        }
+    }
+    if (arg_index < 4 && name[start] != '\0') {
+        test_args[arg_index++] = &name[start];
+    }
+    test_args[3] = NULL; // Assurez-vous que argv est NULL-terminé
+    if (arg_index != 4) {   // Vérifie qu'on a exactement trois arguments, à changer car que si sous format de l'interaction
+        fprintf(stderr, "Erreur : Expression de test invalide.\n");
+        return 1;
+    }
+    // Construction de l'argument pour la commande "test" char *argv[] = { "/usr/bin/test", info->test->name, NULL}; / printf("execute_if | argument pour test : '%s'\n", info->test->name);
     pid_t pid = fork();
     if (pid < 0) {
         perror("fork");
@@ -270,7 +292,7 @@ int execute_if(if_info *info) {
     }
     if (pid == 0) {
         // Child process: exe la commande "test"
-        execvp(argv[0], argv);
+        execvp(test_args[0], test_args);
         perror("execvp");  // Si execvp échoue
         exit(1);
     }
