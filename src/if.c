@@ -120,22 +120,28 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     while (testend > test && isspace((unsigned char)*testend)) testend--;    // Supprime les espaces à droite
     *(testend + 1) = '\0';  // Ajoute un caractère de fin de chaîne
 
-    cmd_info *new_cmd = malloc(sizeof(cmd_info));
-    if (!new_cmd) {
+    //
+    char *new_name = malloc(strlen(test) + 1);  // Alloue mémoire pour la nouvelle copie
+    if (!new_name) {
         perror("malloc");
         free(test);
         return 1;
     }
-    new_cmd->name = test;     // chaîne brute dans 'name'
+    memcpy(new_name, test, strlen(test) + 1);  // Copie la chaîne avec le '\0'
+    //
+    cmd_info *new_cmd = malloc(sizeof(cmd_info));
+    if (!new_cmd) {
+        perror("malloc");
+        free(test);
+        free(new_name);
+        return 1;
+    }
+    new_cmd->name = new_name;     // chaîne brute dans 'name'
     new_cmd->opt = NULL;
     new_cmd->args = NULL;
     info->test = new_cmd;
+    free(test);
 
-    if (!info->test) {  // Gestion échec pour TEST, useless ?
-        fprintf(stderr, "Erreur : parse_cmd a échoué pour le test.\n");
-        destroy_if_info(info);
-        return 1;
-    }
     printf("handle_if_line | Test atteint :%s\n", (char *)info->test->name);
 
     // CMD_TRUE
@@ -278,7 +284,6 @@ int execute_if(if_info *info) {
     // Test réussi si le code de retour est 0
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
         if (info->cmd_true) {
-            printf("execute_if | cmd_true atteint\n");
             return execute_cmd(info->cmd_true);
         }
     } else {
