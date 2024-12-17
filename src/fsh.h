@@ -33,5 +33,8 @@ int display_prompt(int);
 int fsh_exit(cmd_info *);
 int exec_for(for_info *);
 int for_no_opt(cmd_info *);
+int handle_for(for_info *);
+int handle_for_dep(for_info *, struct stat, char *, char *, int);
+int exec_for_cmd(for_info *, char *, int);
 
 #endif
