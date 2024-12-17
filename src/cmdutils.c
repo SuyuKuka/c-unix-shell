@@ -168,7 +168,6 @@ int execute_cmd(cmd_info *cmd) {
         free(argv);
         return 1;
     }
-    printf("free argv vers fin de execute_cmd\n");
     free(argv);
 
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {

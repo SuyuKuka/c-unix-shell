@@ -41,7 +41,6 @@ if_info *if_info_init() {   // Intialisation d'une struct if_info
 void destroy_if_info(if_info *info) {
     if (info) {
         if (info->test) {
-            printf("destroy_if_info | info->test\n");
             destroy_cmd_info(info->test);
             info->test = NULL;
         }
@@ -262,9 +261,9 @@ int execute_if(if_info *info) {
         return 1;
     }
     // Construction de l'argument pour la commande "test"
-    char *argv[] = { "/usr/bin/test", info->test->name, NULL };
-
-     pid_t pid = fork();
+    char *argv[] = { "/usr/bin/test", info->test->name, NULL};
+    printf("execute_if | argument pour test : '%s'\n", info->test->name);
+    pid_t pid = fork();
     if (pid < 0) {
         perror("fork");
         return 1;
@@ -283,6 +282,7 @@ int execute_if(if_info *info) {
 
     // Test réussi si le code de retour est 0
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        printf("execute_if | code de retour du test : %d\n", WEXITSTATUS(status));
         if (info->cmd_true) {
             return execute_cmd(info->cmd_true);
         }
