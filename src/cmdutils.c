@@ -2,12 +2,19 @@
 
 char *trim(char *str) {
     if (!str) return NULL;
-    char *start = str;
+    const char *start = str;
     while (isspace((unsigned char)*start)) start++;
-    char *end = start + strlen(start) - 1;
-    while (end > start && isspace((unsigned char)*end)) end--;
-    *(end + 1) = '\0';
-    return start;  // Retourner un pointeur vers la partie "trimmed"
+    const char *end = start + strlen(start);
+    while (end > start && isspace((unsigned char)*(end - 1))) end--;
+    size_t len = end - start;
+    char *trimmed = malloc(len + 1);    // Alloue une nouvelle chaîne "trimmed"
+    if (!trimmed) {
+        perror("malloc");
+        return NULL;
+    }
+    memcpy(trimmed, start, len);
+    trimmed[len] = '\0';
+    return trimmed;  // Retourner pointeur vers trimmed
 }
 
 cmd_info *parse_cmd(const char *cmd) {
@@ -42,7 +49,12 @@ cmd_info *parse_cmd(const char *cmd) {
         }
         memcpy(info->name, name_start, name_len);
         info->name[name_len] = '\0';
-        info->name = trim(info->name);
+
+        char *trimmed_name = trim(info->name);
+        if (trimmed_name) {
+            free(info->name);  // Libérer l'ancienne mémoire
+            info->name = trimmed_name;
+        }
     }
 
     while (*cursor == ' ') {    // Début de l'option
@@ -64,7 +76,12 @@ cmd_info *parse_cmd(const char *cmd) {
         }
         memcpy(info->opt, opt_start, opt_len);
         info->opt[opt_len] = '\0';
-        info->opt = trim(info->opt);
+
+        char *trimmed_opt = trim(info->opt);
+        if (trimmed_opt) {
+            free(info->opt);  // Libérer l'ancienne mémoire
+            info->opt = trimmed_opt;
+        }
     }
 
     while (*cursor == ' ') {    // Début des arguments
@@ -84,7 +101,12 @@ cmd_info *parse_cmd(const char *cmd) {
         }
         memcpy(info->args, args_start, args_len);
         info->args[args_len] = '\0';
-        info->args = trim(info->args);
+
+        char *trimmed_args = trim(info->args);
+        if (trimmed_args) {
+            free(info->args);  // Libérer l'ancienne mémoire
+            info->args = trimmed_args;
+        }
     }
 
     return info;
