@@ -95,9 +95,9 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
         }
     }
 
-    if(!f-> opt_a && dir_name[0] != '.') {
+    if(!f -> opt_a && dir_name[0] != '.') {
         result =  exec_for_cmd(f, path, var);
-    } else if (f-> opt_a) {
+    } else if (f -> opt_a) {
         result = exec_for_cmd(f, path, var);
     } 
 
@@ -120,15 +120,13 @@ int handle_for(for_info * f) {
     //Ouverture du fichier.
     DIR * dirp = opendir(f -> directory); 
     if (dirp == NULL) {  
-        perror("Référence invalide"); 
-        result = 1;
+        perror("open dir"); 
         goto error;
     }
 
     //malloc d'un char * pour sauvegarder la référence courante.
     path = malloc(BUFFER_SIZE * sizeof(char));
     if (path == NULL) {
-        result = 1;
         goto error;
     }
     
@@ -138,7 +136,7 @@ int handle_for(for_info * f) {
     }
     
     //Si le répertoire donné ne possède pas de '/' à la fin de la ligne on lui ajoute et on sauvegarde dans path.
-    if (f->directory[strlen(f -> directory) - 1] != '/') {
+    if (f -> directory[strlen(f -> directory) - 1] != '/') {
         strcat(f -> directory, "/");
     }
     memmove(path, f -> directory, strlen(f -> directory) + 1);
@@ -148,11 +146,9 @@ int handle_for(for_info * f) {
         memmove(path + strlen(f -> directory), entry -> d_name, strlen(entry -> d_name) + 1);    
         if (lstat(path, &st) == 0) {
             n = handle_for_dep(f, st, path, entry -> d_name, var);
-
             if (result < n) {
                 result = n;
             }
-
         } else {
             perror("error");
             closedir(dirp);
@@ -168,7 +164,7 @@ int handle_for(for_info * f) {
     error:
     free(path);
     destroy_for_info(f);
-    return 1;
+    return EXIT_FAILURE;
 }
 
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
