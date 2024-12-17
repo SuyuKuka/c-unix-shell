@@ -13,7 +13,7 @@ if_info *if_info_init() {   // Intialisation d'une struct if_info
     return info;
 }
 
-void destroy_if_info(if_info *info) {   // Libération de la mémoire associée à une struct if_info
+/*void destroy_if_info(if_info *info) {   // Libération de la mémoire associée à une struct if_info
     if (info) {
         if (info->test) {
             if (info->test->name) free(info->test->name); // Libère 'name', pob avec destroy_if_info de type
@@ -32,6 +32,31 @@ void destroy_if_info(if_info *info) {   // Libération de la mémoire associée 
         if (info->cmd_false && info->cmd_false != info->test && info->cmd_false != info->cmd_true) {
             printf("destroy_if_info | info->cmd_false\n");
             destroy_cmd_info(info->cmd_false);
+            info->cmd_false = NULL;
+        }
+        free(info);
+    }
+}
+*/
+void destroy_if_info(if_info *info) {
+    if (info) {
+        if (info->test) {
+            printf("destroy_if_info | info->test\n");
+            destroy_cmd_info(info->test);
+            info->test = NULL;
+        }
+        if (info->cmd_true) {
+            if (info->cmd_true != info->test) {
+                printf("destroy_if_info | info->cmd_true\n");
+                destroy_cmd_info(info->cmd_true);
+            }
+            info->cmd_true = NULL;
+        }
+        if (info->cmd_false) {
+            if (info->cmd_false != info->test && info->cmd_false != info->cmd_true) {
+                printf("destroy_if_info | info->cmd_false\n");
+                destroy_cmd_info(info->cmd_false);
+            }
             info->cmd_false = NULL;
         }
         free(info);

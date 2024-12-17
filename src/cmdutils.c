@@ -1,12 +1,5 @@
 #include "cmdutils.h"
-/*
-void trim(char *str) {
-    if (str == NULL) return;
-    while (isspace((unsigned char)*str)) str++; // Supprime les espaces à gauche
-    char *end = str + strlen(str) - 1;
-    while (end > str && isspace((unsigned char)*end)) end--;    // Supprime les espaces à droite
-    *(end + 1) = '\0';  // Ajoute un caractère de fin de chaîne
-}*/
+
 char *trim(char *str) {
     if (!str) return NULL;
     char *start = str;
