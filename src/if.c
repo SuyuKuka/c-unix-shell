@@ -254,40 +254,54 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     return execute_if(info);
 }
 
+
 // Exec commande if. Return 0 si succès, 1 si échec.
 int execute_if(if_info *info) {
     if (!info || !info->test || !info->test->name) {
         fprintf(stderr, "Erreur : if_info mal formé.\n");
         return 1;
     }
-    // Parsing manuel de test, à changer
-    char *test_args[5] = { "/usr/bin/test", NULL, NULL, NULL };
+    
+    // Tableau d'arguments alloué dynamiquement
+    char **test_args = malloc(sizeof(char *) * 10); // Taille initiale (agrandie si besoin)
+    if (!test_args) {
+        perror("malloc");
+        return 1;
+    }
+    test_args[0] = "/usr/bin/test"; // commande test
+    int arg_index = 1;
     char *name = info->test->name;
-    int start = 0, arg_index = 1; // Index de l'argument actuel dans test_args
+    int in_quote = 0; // Pour guillemets
+    int start = 0;
     for (int i = 0; name[i] != '\0'; i++) {
-        if (name[i] == ' ') {
-            // On a trouvé un séparateur (espace), extrait l'argument
-            name[i] = '\0'; // Termine la chaîne actuelle
-            test_args[arg_index++] = &name[start];
-            start = i + 1; // Met à jour le début du prochain argument
+        if (name[i] == '"' || name[i] == '\'') {
+            in_quote = !in_quote; // Bascule dans ou hors des guillemets
+            continue;
+        }
 
-            if (arg_index >= 4) {
-                break; // On a extrait les trois arguments attendus
+        if (name[i] == ' ' && !in_quote) {
+            name[i] = '\0';
+            test_args[arg_index++] = &name[start];
+            start = i + 1;
+
+            if (arg_index % 10 == 0) { // Réallocation si nécessaire
+                test_args = realloc(test_args, sizeof(char *) * (arg_index + 10));
+                if (!test_args) {
+                    perror("realloc");
+                    return 1;
+                }
             }
         }
     }
-    if (arg_index < 4 && name[start] != '\0') {
+    if (name[start] != '\0') {
         test_args[arg_index++] = &name[start];
     }
-    test_args[arg_index] = NULL; // Assure que NULL-terminé
-    /*if (arg_index != 4) {   // Vérifie qu'on a exactement trois arguments, à changer car que si sous format de l'interaction
-        fprintf(stderr, "Erreur : Expression de test invalide.\n");
-        return 1;
-    }*/
-    // Construction de l'argument pour la commande "test" char *argv[] = { "/usr/bin/test", info->test->name, NULL}; / printf("execute_if | argument pour test : '%s'\n", info->test->name);
+    test_args[arg_index] = NULL; // NULL-terminer
+
     pid_t pid = fork();
     if (pid < 0) {
         perror("fork");
+        free(test_args);
         return 1;
     }
     if (pid == 0) {
@@ -299,9 +313,10 @@ int execute_if(if_info *info) {
     int status;
     if (waitpid(pid, &status, 0) < 0) {
         perror("waitpid");
+        free(test_args);
         return 1;
     }
-
+    free(test_args);
     // Test réussi si le code de retour est 0
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
         printf("execute_if | code de retour du test : %d\n", WEXITSTATUS(status));
