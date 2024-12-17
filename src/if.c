@@ -46,7 +46,6 @@ void destroy_if_info(if_info *info) {
         }
         if (info->cmd_true) {
             if (info->cmd_true != info->test) {
-                printf("destroy_if_info | info->cmd_true\n");
                 destroy_cmd_info(info->cmd_true);
             }
             info->cmd_true = NULL;
@@ -278,10 +277,10 @@ int execute_if(if_info *info) {
             in_quote = !in_quote; // Bascule dans ou hors des guillemets
             continue;
         }
-
         if (name[i] == ' ' && !in_quote) {
             name[i] = '\0';
             test_args[arg_index++] = &name[start];
+            printf("execute_if | contenu de test_args[%d] :%s\n", arg_index, test_args[arg_index]);
             start = i + 1;
 
             if (arg_index % 10 == 0) { // Réallocation si nécessaire
@@ -295,6 +294,7 @@ int execute_if(if_info *info) {
     }
     if (name[start] != '\0') {
         test_args[arg_index++] = &name[start];
+        printf("execute_if | if (name[start] != '/0'), contenu de test_args[%d] :%s\n", arg_index, test_args[arg_index]);
     }
     test_args[arg_index] = NULL; // NULL-terminer
 
