@@ -114,28 +114,28 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     }
     memcpy(test, test_start, test_len);
     test[test_len] = '\0';
-    // trim du bled
-    while (isspace((unsigned char)*test)) test++; // Supprime les espaces à gauche
-    char *testend = test + strlen(test) - 1;
-    while (testend > test && isspace((unsigned char)*testend)) testend--;    // Supprime les espaces à droite
-    *(testend + 1) = '\0';  // Ajoute un caractère de fin de chaîne
+    // trim du bled revisité
+    char *trim_start = test;
+    while (isspace((unsigned char)*trim_start)) trim_start++; // Trim gauche
+    char *trim_end = trim_start + strlen(trim_start) - 1;
+    while (trim_end > trim_start && isspace((unsigned char)*trim_end)) trim_end--; // Trim droit
+    *(trim_end + 1) = '\0';
 
-    //
-    char *new_name = malloc(strlen(test) + 1);  // Alloue mémoire pour la nouvelle copie
-    if (!new_name) {
-        perror("malloc");
-        free(test);
-        return 1;
-    }
-    memcpy(new_name, test, strlen(test) + 1);  // Copie la chaîne avec le '\0'
     //
     cmd_info *new_cmd = malloc(sizeof(cmd_info));
     if (!new_cmd) {
         perror("malloc");
         free(test);
-        free(new_name);
         return 1;
     }
+    char *new_name = malloc(strlen(trim_start) + 1);  // Alloue mémoire pour la nouvelle copie
+    if (!new_name) {
+        perror("malloc");
+        free(test);
+        free(new_cmd);
+        return 1;
+    }
+    memcpy(new_name, trim_start, strlen(trim_start) + 1);
     new_cmd->name = new_name;     // chaîne brute dans 'name'
     new_cmd->opt = NULL;
     new_cmd->args = NULL;
