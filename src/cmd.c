@@ -38,8 +38,8 @@ void destroy_cmd_info(cmd_info * cmd) {
 
 void cmd_format(char * line, cmd_info * cmd) {
     size_t i = 0;
-    while(isspace(line[i]) != 0) {i++;}
-    if (line[i] == '-' && isspace(line[i+1]) == 0) {
+    while(isspace(line[i]) != 0) { i++; }
+    if (line[i] == '-' && isspace(line[i + 1]) == 0) {
         while(isspace(line[i]) == 0 && line[i] != '\0') {
             cmd -> opt[strlen(cmd -> opt)] = line[i];
             i++;
@@ -58,8 +58,8 @@ void cmd_format(char * line, cmd_info * cmd) {
             cmd -> args[strlen(cmd -> args)] = line[i];
             i++;
         }
-        while (isspace(line[i]) != 0) {i++;}
-        if (line[i] != '\0' || (line[i] == '-' && isspace(line[i+1]) == 0)) {
+        while (isspace(line[i]) != 0) { i++; }
+        if (line[i] != '\0' || (line[i] == '-' && isspace(line[i + 1]) == 0)) {
             strcat(cmd -> args, " ");
             memmove(line, line + i, strlen(line) - i + 1);
             cmd_format(line, cmd);

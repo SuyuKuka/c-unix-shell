@@ -41,7 +41,6 @@ for_info * for_info_init();
 void destroy_for_info(for_info *);
 
 for_info * handle_for_line(char *);
-// void handle_for_cmd(for_info *, char *);
 char * replace_var(char *, char *, char);
 int init_options(for_info *);
 int check_ext(char *, const char *); 
