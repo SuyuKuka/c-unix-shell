@@ -261,7 +261,7 @@ int execute_if(if_info *info) {
         return 1;
     }
     // Parsing manuel de test, à changer
-    char *test_args[4] = { "/usr/bin/test", NULL, NULL, NULL };
+    char *test_args[5] = { "/usr/bin/test", NULL, NULL, NULL };
     char *name = info->test->name;
     int start = 0, arg_index = 1; // Index de l'argument actuel dans test_args
     for (int i = 0; name[i] != '\0'; i++) {
@@ -279,11 +279,11 @@ int execute_if(if_info *info) {
     if (arg_index < 4 && name[start] != '\0') {
         test_args[arg_index++] = &name[start];
     }
-    test_args[3] = NULL; // Assurez-vous que argv est NULL-terminé
-    if (arg_index != 4) {   // Vérifie qu'on a exactement trois arguments, à changer car que si sous format de l'interaction
+    test_args[arg_index] = NULL; // Assure que NULL-terminé
+    /*if (arg_index != 4) {   // Vérifie qu'on a exactement trois arguments, à changer car que si sous format de l'interaction
         fprintf(stderr, "Erreur : Expression de test invalide.\n");
         return 1;
-    }
+    }*/
     // Construction de l'argument pour la commande "test" char *argv[] = { "/usr/bin/test", info->test->name, NULL}; / printf("execute_if | argument pour test : '%s'\n", info->test->name);
     pid_t pid = fork();
     if (pid < 0) {
