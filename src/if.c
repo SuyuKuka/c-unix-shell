@@ -123,7 +123,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     cmd_info *new_cmd = malloc(sizeof(cmd_info));
     if (!new_cmd) {
         perror("malloc");
-        free(test);  // Libère la chaîne si l'allocation échoue
+        free(test);
         return 1;
     }
     new_cmd->name = test;     // chaîne brute dans 'name'
@@ -131,7 +131,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     new_cmd->args = NULL;
     info->test = new_cmd;
 
-    if (!info->test) {  // Gestion échec pour TEST
+    if (!info->test) {  // Gestion échec pour TEST, useless ?
         fprintf(stderr, "Erreur : parse_cmd a échoué pour le test.\n");
         destroy_if_info(info);
         return 1;
@@ -139,8 +139,15 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     printf("handle_if_line | Test atteint :%s\n", (char *)info->test->name);
 
     // CMD_TRUE
+    while (*cursor == ' ') cursor++;
+    if (*cursor != '{') {
+        fprintf(stderr, "Erreur : CMD_TRUE mal formée, '{' manquant.\n");
+        return 1;
+    }
+    cursor++;
+
     char *cmd_true_start = cursor;
-    while (*cursor != '\0' && *cursor != '}') cursor++; // Avance jusqu'à '}' puis check si on ne trouve pas fin
+    while (*cursor != '\0' && *cursor != '}') cursor++;
     if (*cursor == '\0') {
         fprintf(stderr, SYNTAX_ERR);
         return 1;
@@ -156,53 +163,55 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     }
     memcpy(cmd_true, cmd_true_start, cmd_true_len);
     cmd_true[cmd_true_len] = '\0';
-    // Enlever les crochets
+    // Nettoyage des crochets et des espaces
     size_t tstart = 0;
-    while (cmd_true[tstart] == '{' || cmd_true[tstart] == ' ') tstart++;
+    while (cmd_true[tstart] == '{' || isspace((unsigned char)cmd_true[tstart])) tstart++;
     size_t tend = cmd_true_len - 1;
-    while (cmd_true[tend] == '}' || cmd_true[tend] == ' ') tend--;
-    cmd_true[tend + 1] = '\0';
-    //
-    char *original_cmd_true = cmd_true;
-    cmd_true = cmd_true + tstart;
+    while (tend > tstart && (cmd_true[tend] == '}' || isspace((unsigned char)cmd_true[tend]))) tend--;
+
     size_t new_len = tend - tstart + 1;
     char *clean_cmd = malloc(new_len + 1);
     if (!clean_cmd) {
         perror("malloc");
-        free(original_cmd_true);
+        free(cmd_true);
         return 1;
     }
-    memcpy(clean_cmd, cmd_true, new_len);
+    memcpy(clean_cmd, cmd_true + tstart, new_len);
     clean_cmd[new_len] = '\0';
+    free(cmd_true);
 
-    clean_cmd = trim(clean_cmd);
-    info->cmd_true = parse_cmd(clean_cmd);
-    printf("free(original_cmd_true)\n");
-    free(original_cmd_true);
-    printf("free(clean_cmd)\n");
+    char *trimmed_cmd = trim(clean_cmd);
     free(clean_cmd);
-    if (!info->cmd_true) {  // Gestion échec pour CMD_TRUE
-        fprintf(stderr, "Erreur : parse_cmd a échoué pour la cmd_true.\n");
+    if (!trimmed_cmd) {
+        return 1;
+    }
+    info->cmd_true = parse_cmd(trimmed_cmd);
+    free(trimmed_cmd);
+    if (!info->cmd_true) {
+        fprintf(stderr, "Erreur : parse_cmd a échoué pour CMD_TRUE.\n");
         destroy_if_info(info);
         return 1;
     }
     printf("handle_if_line | cmd_true atteint :%s\n", (char *)info->cmd_true->name);
 
-    // Check si présence 'else'
-    while (*cursor == ' ') cursor++; // Ignore espaces
+    // CMD_FALSE
+    while (*cursor == ' ') cursor++;
     if (strncmp(cursor, "else", 4) == 0) {
-        cursor += 4; // Skip le "else"
+        cursor += 4;
         while (*cursor == ' ') cursor++;
+        if (*cursor != '{') {
+            fprintf(stderr, "Erreur : CMD_FALSE mal formée, '{' manquant.\n");
+            return 1;
+        }
+        cursor++;
 
-        // CMD_FALSE
         char *cmd_false_start = cursor;
-        while (*cursor != '\0' && *cursor != '}') cursor++; // Avance jusqu'à '}' puis check si on ne trouve pas fin
+        while (*cursor != '\0' && *cursor != '}') cursor++;
         if (*cursor == '\0') {
             fprintf(stderr, SYNTAX_ERR);
             return 1;
         }
         char *cmd_false_end = cursor;
-
         size_t cmd_false_len = cmd_false_end - cmd_false_start;
         char *cmd_false = malloc(cmd_false_len + 1);
         if (!cmd_false) {
@@ -211,21 +220,30 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
         }
         memcpy(cmd_false, cmd_false_start, cmd_false_len);
         cmd_false[cmd_false_len] = '\0';
-        // Enlever les crochets
+
         size_t estart = 0;
-        while (cmd_false[estart] == '{' || cmd_false[estart] == ' ') estart++;
+        while (cmd_false[estart] == '{' || isspace((unsigned char)cmd_false[estart])) estart++;
         size_t eend = cmd_false_len - 1;
-        while (cmd_false[eend] == '}' || cmd_false[eend] == ' ') eend--;
-        cmd_false[eend + 1] = '\0';
-        //
-        info->cmd_false = parse_cmd(cmd_false);
+        while (eend > estart && (cmd_false[eend] == '}' || isspace((unsigned char)cmd_false[eend]))) eend--;
+
+        size_t new_len_false = eend - estart + 1;
+        char *clean_false = malloc(new_len_false + 1);
+        if (!clean_false) {
+            perror("malloc");
+            free(cmd_false);
+            return 1;
+        }
+        memcpy(clean_false, cmd_false + estart, new_len_false);
+        clean_false[new_len_false] = '\0';
         free(cmd_false);
-        if (!info->cmd_false) {  // Gestion échec pour CMD_FALSE
-            fprintf(stderr, "Erreur : parse_cmd a échoué pour la cmd_false.\n");
+        info->cmd_false = parse_cmd(trim(clean_false));
+        free(clean_false);
+        if (!info->cmd_false) {
+            fprintf(stderr, "Erreur : parse_cmd a échoué pour CMD_FALSE.\n");
             destroy_if_info(info);
             return 1;
         }
-        printf("Cmd_false:%s\n", (char *)info->cmd_false);
+        printf("Cmd_false atteint :%s\n", (char *)info->cmd_false->name);
     }
 
     return execute_if(info);
@@ -338,4 +356,99 @@ int handle_if_line(char *line, if_info *info) {
 
     return execute_if(info);
 }
+
+SECTION PRECEDENTE DU CMDTRUE DE HANDLE:
+// CMD_TRUE
+    char *cmd_true_start = cursor;
+    while (*cursor != '\0' && *cursor != '}') cursor++; // Avance jusqu'à '}' puis check si on ne trouve pas fin
+    if (*cursor == '\0') {
+        fprintf(stderr, SYNTAX_ERR);
+        return 1;
+    }
+    char *cmd_true_end = cursor;
+    cursor++;
+
+    size_t cmd_true_len = cmd_true_end - cmd_true_start;
+    char *cmd_true = malloc(cmd_true_len + 1);
+    if (!cmd_true) {
+        perror("malloc");
+        return 1;
+    }
+    memcpy(cmd_true, cmd_true_start, cmd_true_len);
+    cmd_true[cmd_true_len] = '\0';
+    // Enlever les crochets
+    size_t tstart = 0;
+    while (cmd_true[tstart] == '{' || cmd_true[tstart] == ' ') tstart++;
+    size_t tend = cmd_true_len - 1;
+    while (cmd_true[tend] == '}' || cmd_true[tend] == ' ') tend--;
+    cmd_true[tend + 1] = '\0';
+    //
+    char *original_cmd_true = cmd_true;
+    cmd_true = cmd_true + tstart;
+    size_t new_len = tend - tstart + 1;
+    char *clean_cmd = malloc(new_len + 1);
+    if (!clean_cmd) {
+        perror("malloc");
+        free(original_cmd_true);
+        return 1;
+    }
+    memcpy(clean_cmd, cmd_true, new_len);
+    clean_cmd[new_len] = '\0';
+
+    clean_cmd = trim(clean_cmd);
+    info->cmd_true = parse_cmd(clean_cmd);
+    printf("free(original_cmd_true)\n");
+    free(original_cmd_true);
+    printf("free(clean_cmd)\n");
+    free(clean_cmd);
+    if (!info->cmd_true) {  // Gestion échec pour CMD_TRUE
+        fprintf(stderr, "Erreur : parse_cmd a échoué pour la cmd_true.\n");
+        destroy_if_info(info);
+        return 1;
+    }
+    printf("handle_if_line | cmd_true atteint :%s\n", (char *)info->cmd_true->name);
+
+
+
+SECTION PRECEDENTE DU CMDFALSE DE HANDLE
+// Check si présence 'else'
+    while (*cursor == ' ') cursor++; // Ignore espaces
+    if (strncmp(cursor, "else", 4) == 0) {
+        cursor += 4; // Skip le "else"
+        while (*cursor == ' ') cursor++;
+
+        // CMD_FALSE
+        char *cmd_false_start = cursor;
+        while (*cursor != '\0' && *cursor != '}') cursor++; // Avance jusqu'à '}' puis check si on ne trouve pas fin
+        if (*cursor == '\0') {
+            fprintf(stderr, SYNTAX_ERR);
+            return 1;
+        }
+        char *cmd_false_end = cursor;
+
+        size_t cmd_false_len = cmd_false_end - cmd_false_start;
+        char *cmd_false = malloc(cmd_false_len + 1);
+        if (!cmd_false) {
+            perror("malloc");
+            return 1;
+        }
+        memcpy(cmd_false, cmd_false_start, cmd_false_len);
+        cmd_false[cmd_false_len] = '\0';
+        // Enlever les crochets
+        size_t estart = 0;
+        while (cmd_false[estart] == '{' || cmd_false[estart] == ' ') estart++;
+        size_t eend = cmd_false_len - 1;
+        while (cmd_false[eend] == '}' || cmd_false[eend] == ' ') eend--;
+        cmd_false[eend + 1] = '\0';
+        //
+        info->cmd_false = parse_cmd(cmd_false);
+        free(cmd_false);
+        if (!info->cmd_false) {  // Gestion échec pour CMD_FALSE
+            fprintf(stderr, "Erreur : parse_cmd a échoué pour la cmd_false.\n");
+            destroy_if_info(info);
+            return 1;
+        }
+        printf("Cmd_false:%s\n", (char *)info->cmd_false);
+    }
+
 */
