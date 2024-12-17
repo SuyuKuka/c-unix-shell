@@ -38,72 +38,137 @@ int call_function (cmd_info * cmd) {
     }
 }
 
-int exec_for_cmd(for_info * f) {
+//Fonction qui exécute une commande en passant une copie de la ligne de commande du for.
+int exec_for_cmd(for_info * f, char * path, int var) {
+    char * copy = NULL;
     int result = 0;
+    if  (var == 1) {
+        copy = replace_var(f -> command, path, f -> for_var);
+        if (copy == NULL) {
+            return 1;
+        }
+        return handle_line(copy);
+    } else {
+        copy = malloc((strlen(f->command) + 1) * sizeof(char));
+        if (copy == NULL) {
+            return 1;
+        }
+        memmove(copy, f -> command, strlen(f -> command) +1);
+        return handle_line(copy);
+    }
+}
+
+//Fonction qui vérifie les dépendances du for (options, type de fichiers, etc...)
+int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, int var) {
+    int result = 0;
+    int n = 0;
+    for_info * copy = NULL; 
+    if (strcmp(dir_name, ".") == 0 || strcmp(dir_name, "..") == 0) {
+        return 0;
+    }
+
+    if (f -> opt_r && S_ISDIR(st.st_mode)) {
+        copy = copy_for_info(f);
+        if (copy != NULL) {
+            memmove(copy -> directory, path, strlen(path) + 1);
+            n =  handle_for(copy);
+        } else {
+            perror("Erreur copy -r");
+            exit(1);
+        }
+    } 
+
+    if (f -> opt_type) {
+        if ((f -> file_type == 'f' && !S_ISREG(st.st_mode))
+        ||(f -> file_type == 'd' && !S_ISDIR(st.st_mode))
+        ||(f -> file_type == 'l' && !S_ISLNK(st.st_mode))
+        ||(f -> file_type == 'p' && !S_ISFIFO(st.st_mode))) {
+            return 0;
+        }
+    }
+
+    if (f -> opt_ext) {
+        if (check_ext(path, f -> ext)) {
+            remove_ext(path);
+        } else {
+            return 0;
+        }
+    }
+
+    if(!f-> opt_a && dir_name[0] != '.') {
+        result =  exec_for_cmd(f, path, var);
+    } else if (f-> opt_a) {
+        result = exec_for_cmd(f, path, var);
+    } 
+
+    if (n > result) {
+        result = n;
+    }
+    
+    return result;
+}
+
+//Fonction qui s'occupe des for passés au prompt.
+int handle_for(for_info * f) {
+    int result = 0;
+    int n = 0;
     char * path = NULL; 
     struct dirent * entry = NULL;
-    struct stat s; 
-    int file_arg = -1;
-    char * copy_args = NULL;
+    struct stat st; 
+    int var = -1;
+
+    //Ouverture du fichier.
     DIR * dirp = opendir(f -> directory); 
     if (dirp == NULL) {  
         perror("Référence invalide"); 
         result = 1;
         goto error;
     }
+
+    //malloc d'un char * pour sauvegarder la référence courante.
     path = malloc(BUFFER_SIZE * sizeof(char));
     if (path == NULL) {
         result = 1;
         goto error;
     }
     
-    if (strstr(f -> command -> args, "$F") != NULL) {
-        file_arg = 1;
+    //Vérification permettant de savoir si la variable F est présente.
+    if (strstr(f -> command, "$") != NULL) {
+        var = 1;
     }
     
+    //Si le répertoire donné ne possède pas de '/' à la fin de la ligne on lui ajoute et on sauvegarde dans path.
     if (f->directory[strlen(f -> directory) - 1] != '/') {
         strcat(f -> directory, "/");
     }
     memmove(path, f -> directory, strlen(f -> directory) + 1);
-    //Copie de la ligne original de l'argument.
-    if (file_arg == 1) {
-        copy_args = calloc(strlen(f -> command -> args) + 1, sizeof(char));
-        memmove(copy_args, f -> command -> args, strlen(f -> command -> args) + 1);
-    }
 
+    //Boucle qui exécute le for.
     while((entry = readdir(dirp)) != NULL) {
-        memmove(path + strlen(f -> directory), entry -> d_name, strlen(entry -> d_name) + 1);
-        if (lstat(path, &s) == 0) {
-            if(entry -> d_name[0] != '.' && S_ISREG(s.st_mode)) {
-                if  (file_arg == 1) {
-                    if (replace_var(f -> command, path) != 0) {goto error;}
-                }
-                int n = call_function(f -> command);
-                if (file_arg == 1) {
-                    memmove(f -> command -> args, copy_args, strlen(copy_args) + 1);
-                }
-                if (n > result) {
-                    result = n;
-                }
+        memmove(path + strlen(f -> directory), entry -> d_name, strlen(entry -> d_name) + 1);    
+        if (lstat(path, &st) == 0) {
+            n = handle_for_dep(f, st, path, entry -> d_name, var);
+
+            if (result < n) {
+                result = n;
             }
+
         } else {
+            perror("error");
             closedir(dirp);
-            perror("erreur");
             goto error;
         }
     }
 
     free(path);
-    free(copy_args);
     closedir(dirp);
     destroy_for_info(f);
     return result;
 
     error:
     free(path);
-    free(copy_args);
     destroy_for_info(f);
-    return result;
+    return 1;
 }
 
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
@@ -154,10 +219,10 @@ int handle_line(char * line) {
             }
             f = handle_for_line(line_cmd);
             if (f == NULL) {
-                result = 1;
+                result = 2;
                 goto error;
             }
-            result = exec_for_cmd(f);
+            result = handle_for(f);
         }
 
         close_redirection();
@@ -330,7 +395,7 @@ void color_prompt(char * prompt, int var) {
         memmove(prompt, GREEN, color_len);
         memmove(prompt + color_len + var_len + cyan_len, prompt + color_len + var_len, strlen(prompt) - var_len);
         memmove(prompt + color_len + var_len, CYAN, cyan_len);
-    } else if (var == 1 || var == 255) {
+    } else if (var > 0) {
         color_len = strlen(RED);
         memmove(prompt + color_len, prompt, strlen(prompt));
         memmove(prompt, RED, color_len);
@@ -348,11 +413,15 @@ void color_prompt(char * prompt, int var) {
 /** Adapte la taille du prompt et remplie le reste de '\0'. */
 void make_prompt(char * prompt, int var) {
     size_t current_size = strlen(prompt);
-    size_t size = PROMPT_SIZE + 1;
+    //Ne pas compter $_
+    size_t size = PROMPT_SIZE - 2;
     char * return_value = calloc(BUFFER_SIZE, sizeof(char));
 
     if (var == 255) { 
-        return_value = "[SIG]";
+        strcat(return_value, "[255]\0");
+
+        //TODO: Remplacer par SIG une fois que c'est demandé.
+        //strcat(return_value, "[SIG]");
     } else {
         strcat(return_value, "[");
         if (var == -1) {
@@ -366,7 +435,6 @@ void make_prompt(char * prompt, int var) {
 
     size_t return_length = strlen(return_value);
     if (current_size > PROMPT_SIZE) {
-        size = size - return_length;
         memmove(prompt, prompt+(current_size - size), size);
         prompt[size] = '\0';
         memmove(prompt, return_value, return_length);
