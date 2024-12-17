@@ -16,6 +16,14 @@ for_info * for_info_init() {
     f -> options[MAX_OPTIONS] = NULL;
 
     f -> opt_size = 0;
+    f -> opt_a = 0;
+    f -> opt_r = 0;
+    f -> opt_ext = 0;
+    f -> opt_type = 0;
+    f -> opt_p = 0;
+    f -> ext = NULL;
+    f -> file_type = '\0';
+    f -> p_max = 0;
 
     return f;
 
@@ -41,45 +49,52 @@ int init_options(for_info * f) {
     while (i < f -> opt_size) {
         if (strcmp(f -> options[i], "-A") == 0) {
             f -> opt_a = 1;
+    
         } else if (strcmp(f -> options[i], "-r") == 0) {
             f -> opt_r = 1; 
+
         } else if (strcmp(f -> options[i], "-e") == 0) {
             if (i+1 >= f -> opt_size) {
                 write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
                 goto error;
-            } else if (f -> options[i+1][0] != '.') {
-                write(STDERR_FILENO, INVALID_EXT, strlen(INVALID_EXT));
-                goto error;
+            }
+            f -> opt_ext = 1;
+            if (f -> options[i+1][0] == '.') {
+                memmove(f -> options[i+1], f -> options[i+1] + 1, strlen(f -> options[i+1]) + 1);
             }
             f -> ext = f -> options[i+1];
             i++;
+
         } else if (strcmp(f -> options[i], "-t") == 0) {
             if (i+1 >= f -> opt_size) {
                 write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
                 goto error;
             }
             char * type = f -> options[i+1];
-            if (strcmp(type, "f") != 0 || strcmp(type, "d") != 0 || strcmp(type, "l") != 0 || strcmp(type, "p") != 0) {
+            if (strcmp(type, "f") != 0 && strcmp(type, "d") != 0 && strcmp(type, "l") != 0 && strcmp(type, "p") != 0) {
                 write(STDERR_FILENO, INVALID_TYPE, strlen(INVALID_TYPE));
                 goto error;
             }
             type = NULL; 
+            f -> opt_type = 1;
             f -> file_type = f -> options[i+1][0];
             i++;
-        } else if (strcmp(f -> options[i], "-p") == 0) {
-            if (i+1 >= f -> opt_size) {
-                write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
-                goto error;
-            }
-            size_t length = strlen(f -> options[i+1]);
-            for (size_t j = 0; j < length; j++) {
-                if (!isdigit(f -> options[i+1][j])) {
-                    write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
-                    goto error;
-                }
-            }
-            f -> p_max = atoi(f -> options[i+1]);
-            i++;
+
+        // } else if (strcmp(f -> options[i], "-p") == 0) {
+        //     if (i+1 >= f -> opt_size) {
+        //         write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
+        //         goto error;
+        //     }
+        //     size_t length = strlen(f -> options[i+1]);
+        //     for (size_t j = 0; j < length; j++) {
+        //         if (!isdigit(f -> options[i+1][j])) {
+        //             write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
+        //             goto error;
+        //         }
+        //     }
+        //     f -> opt_p = 1;
+        //     f -> p_max = atoi(f -> options[i+1]);
+        //     i++;
         } else {
             write(STDERR_FILENO, INVALID_OPT,strlen(INVALID_OPT));
             goto error;
@@ -90,7 +105,7 @@ int init_options(for_info * f) {
     return 0;
 
     error:
-    return 2;
+    return 1;
 }
 
 for_info * handle_for_line(char * line) {
@@ -115,13 +130,11 @@ for_info * handle_for_line(char * line) {
     line[end-1] = '\0';
 
     //Vérification de la syntaxe et si le for concerne les fichiers ou les répertoires.
-    if ((line[i] != 'F' && line[i] != 'D') && line[i+1] != ' ') {
+    if (line[i+1] != ' ') {
         write(STDERR_FILENO, SYNTAX_ERROR, strlen(SYNTAX_ERROR));
         goto error;
-    } else if (line[i] == 'F') {
-        f -> for_type = FOR_FILE;
     } else {
-        f -> for_type = FOR_DIRECTORY;
+        f -> for_var = line[i];
     }
     i++;
     while(isspace(line[i]) != 0) {i++;}
@@ -216,7 +229,7 @@ for_info * handle_for_line(char * line) {
 // }
 
 //Remplace les $F de line par path.
-char * replace_var(char * line, char * path) {
+char * replace_var(char * line, char * path, char var) {
     char * replaced = calloc(CMD_SIZE, sizeof(char));
 
     if (replaced == NULL) {
@@ -228,9 +241,13 @@ char * replace_var(char * line, char * path) {
         if (line[i] != '$') {
            replaced[strlen(replaced)] = line[i];
            i++;
-        } else if (line[i+1] == 'F') {
+        } else if (line[i+1] != '\0' && line[i+1] == var 
+        && ((isupper(var) > 0 && isupper(line[i+2]) <= 0) || (islower(var) > 0 && islower(line[i+2]) <= 0))) {
             strcat(replaced, path);
             i = i + 2;
+        } else {
+            replaced[strlen(replaced)] = line[i];
+            i++;
         }
     }
     return replaced;
@@ -241,16 +258,82 @@ char * replace_var(char * line, char * path) {
 }
 
 for_info * copy_for_info (for_info * f) {
-    for_info * copy = for_info_init();
+    for_info * copy = NULL;
+    copy = for_info_init();
     if (copy == NULL) { goto error; }
+
     memmove(copy -> directory, f -> directory, strlen(f -> directory) + 1); 
     memmove(copy -> command, f -> command, strlen(f -> command) + 1);
 
-    copy -> for_type = f -> for_type;
+    copy -> opt_size = f -> opt_size;
+    if (copy -> options == NULL) {goto error;}
+    for (size_t i = 0; i < f -> opt_size; i++) {
+        copy -> options[i] = calloc(strlen(f -> options[i]) + 1, sizeof(char));
+        if (copy -> options[i] == NULL) {goto error;}
+        memmove(copy -> options[i], f -> options[i], strlen(f -> options[i]) + 1);
+    }
+
+    if (init_options(copy) != 0) {
+        goto error;
+    }
+
+    copy -> for_var = f -> for_var;
 
     return copy;
 
     error:
     destroy_for_info(copy);
     return NULL;
+}
+
+int check_ext (char * file, const char * ext) {
+    size_t length = 0;
+    length = strlen(file);
+
+    size_t i = length;
+    int result = 0;
+    char * acc = NULL;
+
+    while (i != 0 && file[i] != '.') {
+        i--;
+    }
+    
+    if (i == 0 || i == length - 1) {
+        goto cleanup;
+    }
+    i++;
+
+    acc = calloc(DIR_SIZE , sizeof(char));
+    if (acc == NULL) {
+        goto cleanup;
+    } 
+
+    while (i < length) {
+        acc[strlen(acc)] = file[i];
+        i++;
+    }
+    strcat(acc, "\0");
+
+    if (strcmp(acc, ext) != 0) {
+        goto cleanup;
+    }
+    
+    result = 1;
+    goto cleanup;
+
+    cleanup:
+    free(acc);
+    return result;
+}
+
+void remove_ext(char * file) {
+    size_t length = strlen(file);
+    size_t i = 0;
+    while (i < length && file[i] != '.') {
+        i++;
+    }
+    while (i < length + 1) {
+        file[i] = '\0';
+        i++;
+    }
 }

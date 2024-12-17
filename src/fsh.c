@@ -38,6 +38,77 @@ int call_function (cmd_info * cmd) {
     }
 }
 
+//Fonction qui exécute une commande en passant une copie de la ligne de commande du for.
+int exec_for_cmd(for_info * f, char * path, int var) {
+    char * copy = NULL;
+    int result = 0;
+    if  (var == 1) {
+        copy = replace_var(f -> command, path, f -> for_var);
+        if (copy == NULL) {
+            return 1;
+        }
+        return handle_line(copy);
+    } else {
+        copy = malloc((strlen(f->command) + 1) * sizeof(char));
+        if (copy == NULL) {
+            return 1;
+        }
+        memmove(copy, f -> command, strlen(f -> command) +1);
+        return handle_line(copy);
+    }
+}
+
+//Fonction qui vérifie les dépendances du for (options, type de fichiers, etc...)
+int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, int var) {
+    int result = 0;
+    int n = 0;
+    for_info * copy = NULL; 
+    if (strcmp(dir_name, ".") == 0 || strcmp(dir_name, "..") == 0) {
+        return 0;
+    }
+
+    if (f -> opt_r && S_ISDIR(st.st_mode)) {
+        copy = copy_for_info(f);
+        if (copy != NULL) {
+            memmove(copy -> directory, path, strlen(path) + 1);
+            n =  handle_for(copy);
+        } else {
+            perror("Erreur copy -r");
+            exit(1);
+        }
+    } 
+
+    if (f -> opt_type) {
+        if ((f -> file_type == 'f' && !S_ISREG(st.st_mode))
+        ||(f -> file_type == 'd' && !S_ISDIR(st.st_mode))
+        ||(f -> file_type == 'l' && !S_ISLNK(st.st_mode))
+        ||(f -> file_type == 'p' && !S_ISFIFO(st.st_mode))) {
+            return 0;
+        }
+    }
+
+    if (f -> opt_ext) {
+        if (check_ext(path, f -> ext)) {
+            remove_ext(path);
+        } else {
+            return 0;
+        }
+    }
+
+    if(!f-> opt_a && dir_name[0] != '.') {
+        result =  exec_for_cmd(f, path, var);
+    } else if (f-> opt_a) {
+        result = exec_for_cmd(f, path, var);
+    } 
+
+    if (n > result) {
+        result = n;
+    }
+    
+    return result;
+}
+
+//Fonction qui s'occupe des for passés au prompt.
 int handle_for(for_info * f) {
     int result = 0;
     int n = 0;
@@ -62,7 +133,7 @@ int handle_for(for_info * f) {
     }
     
     //Vérification permettant de savoir si la variable F est présente.
-    if (strstr(f -> command, "$F") != NULL) {
+    if (strstr(f -> command, "$") != NULL) {
         var = 1;
     }
     
@@ -76,27 +147,15 @@ int handle_for(for_info * f) {
     while((entry = readdir(dirp)) != NULL) {
         memmove(path + strlen(f -> directory), entry -> d_name, strlen(entry -> d_name) + 1);    
         if (lstat(path, &st) == 0) {
-            if(entry -> d_name[0] != '.' && S_ISREG(st.st_mode)) {
-                char * copy = NULL;
-                if  (var == 1) {
-                    copy = replace_var(f -> command, path);
-                    if (copy == NULL) {
-                        goto error;
-                    }
-                    n = handle_line(copy);
-                } else {
-                    copy = malloc((strlen(f->command) + 1) * sizeof(char));
-                    memmove(copy, f -> command, strlen(f -> command) +1);
-                    n = handle_line(copy);
-                }
+            n = handle_for_dep(f, st, path, entry -> d_name, var);
 
-                if (n > result) {
-                    result = n;
-                }
+            if (result < n) {
+                result = n;
             }
+
         } else {
-            closedir(dirp);
             perror("error");
+            closedir(dirp);
             goto error;
         }
     }
