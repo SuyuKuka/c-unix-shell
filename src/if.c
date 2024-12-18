@@ -99,7 +99,6 @@ if_info *handle_if_line(char *line) {
     memcpy(condition, condition_start, condition_len);
     condition[condition_len] = '\0';
     char *clean_condition = strip_brackets(condition);  // Nettoie crochets autour de la condition
-    printf("clean_condition récupérée :%s\n", clean_condition);
     free(condition);
     if (clean_condition == NULL) {
         fprintf(stderr, "Erreur : nettoyage des crochets échoué.\n");
@@ -125,7 +124,6 @@ if_info *handle_if_line(char *line) {
     new_cmd->opt = NULL;
     new_cmd->args = NULL;
     info->test = new_cmd;  // Stocke directement dans info->test
-    printf("info->test->name post 'parse' :%s\n", info->test->name);
     free(clean_condition);
 
 
@@ -169,13 +167,11 @@ if_info *handle_if_line(char *line) {
     free(cmd_true);
 
     char *trimmed_cmd = trim(clean_cmd);
-    printf("trimmed_true :%s\n", trimmed_cmd);
     free(clean_cmd);
     if (!trimmed_cmd) {
         return NULL;
     }
     memmove(info->cmd_true, trimmed_cmd, strlen(trimmed_cmd)+1);
-    printf("post memmove, info->cmd_true :%s\n", info->cmd_true);
     free(trimmed_cmd);
 
     // CMD_FALSE
@@ -222,16 +218,13 @@ if_info *handle_if_line(char *line) {
         free(cmd_false);
 
         char *trimmed_false = trim(clean_false);
-        printf("trimmed_false :%s\n", trimmed_false);
         free(clean_false);
         if (trimmed_false == NULL) {
             return NULL;
         }
         memmove(info->cmd_false, trimmed_false, strlen(trimmed_false)+1);
-        printf("post memmove, info->cmd_false :%s\n", info->cmd_false);
         free(trimmed_false);
     }
-    printf("handle_if_line : return 0\n");
     return info;    // return le if info
 }
 
