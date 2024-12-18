@@ -15,7 +15,7 @@ typedef struct if_info {
 if_info *if_info_init();
 void destroy_if_info(if_info *info);
 
-if_info *handle_if_line(char *line, if_info *info);
+if_info *handle_if_line(char *line);
 int execute_if(if_info *info);
 
 #endif
