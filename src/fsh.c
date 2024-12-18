@@ -292,7 +292,7 @@ int handle_line(char * line) {
         if (strcmp(cmd -> name, "") == 0) {
             result = 0;
         } else if (strcmp(cmd->name, "if") == 0) {  // Implémentation du handle_if_line ici ?
-        iinfo = handle_if_line(line, iinfo);
+        iinfo = handle_if_line(line);
         }
         else if (strcmp(cmd -> name, "for") != 0) {
             if (line_cmd[pos] != '\0') {
