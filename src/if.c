@@ -7,9 +7,16 @@ if_info *if_info_init() {   // Intialisation d'une struct if_info
         return NULL;
     }
     info->test = NULL;  // Test du if
-    info->cmd_true = NULL;  // Commande effectuée si test = true
-    info->cmd_false = NULL; // Si 'else', commande effectuée si test = false
-
+    info->cmd_true = calloc(CMD_SIZE, sizeof(char));  // Commande effectuée si test = true
+    if(cmd_true == NULL) {
+        destroy_if_info(info);
+        return NULL;
+    }
+    info->cmd_false = calloc(CMD_SIZE, sizeof(char)); // Si 'else', commande effectuée si test = false
+    if(cmd_false == NULL) {
+        destroy_if_info(info);
+        return NULL;
+    }
     return info;
 }
 
