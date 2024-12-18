@@ -6,6 +6,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <sys/wait.h>   // includepath ?
+#include "fsh.h"
 
 char *trim(char *str);
 

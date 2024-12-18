@@ -112,7 +112,7 @@ cmd_info *parse_cmd(const char *cmd) {
     return info;
 }
 
-
+//
 int execute_cmd(cmd_info *cmd) {
     if (!cmd || !cmd->name) {
         fprintf(stderr, "Commande invalide\n");
@@ -175,3 +175,45 @@ int execute_cmd(cmd_info *cmd) {
     }
     return 1;   // échec
 }
+
+//
+/*
+nt execute_cmd(cmd_info *cmd) {
+    if (!cmd || !cmd->name) {
+        fprintf(stderr, "Commande invalide\n");
+        return 1;
+    }
+
+    char **sub_cmds = handle_cmd(cmd->name); // Découpage des commandes multiples
+    if (!sub_cmds) return 1;
+
+    for (size_t i = 0; sub_cmds[i] != NULL; i++) {
+        char *cmd_line = sub_cmds[i];
+        char *argv[] = {"/bin/sh", "-c", cmd_line, NULL};
+
+        pid_t pid = fork();
+        if (pid < 0) {
+            perror("fork");
+            free(sub_cmds);
+            return 1;
+        }
+        if (pid == 0) {
+            execvp(argv[0], argv);
+            perror("execvp");
+            exit(1);
+        }
+
+        int status;
+        if (waitpid(pid, &status, 0) < 0) {
+            perror("waitpid");
+            free(sub_cmds);
+            return 1;
+        }
+    }
+
+    for (size_t i = 0; sub_cmds[i] != NULL; i++) free(sub_cmds[i]);
+    free(sub_cmds);
+
+    return 0;
+}
+} */
