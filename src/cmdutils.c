@@ -178,7 +178,7 @@ int execute_cmd(cmd_info *cmd) {
 
 //
 /*
-nt execute_cmd(cmd_info *cmd) {
+int execute_cmd(cmd_info *cmd) {
     if (!cmd || !cmd->name) {
         fprintf(stderr, "Commande invalide\n");
         return 1;

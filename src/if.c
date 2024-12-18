@@ -291,6 +291,7 @@ int execute_if(if_info *info) {
         return 1;
     }
     free(test_args);
+    
     // Test réussi si le code de retour est 0
     if (WIFEXITED(status)) {
         int exit_status = WEXITSTATUS(status);
@@ -316,7 +317,6 @@ int execute_if(if_info *info) {
     //printf("Condition fausse et pas de cmd_false, return 0\n");
     return 0;
 }
-
 
 /*  
 if (is_test_command) { 
@@ -395,4 +395,5 @@ if (is_test_command) {
         fprintf(stderr, "Erreur : CMD_TRUE mal formée, '{' manquant.\n");
         return 1;
     }
-    cursor++; */
+    cursor++; 
+    */
