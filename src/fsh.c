@@ -178,6 +178,7 @@ int handle_line(char * line) {
     int result = 0;
     cmd_info * cmd = NULL;
     for_info * f = NULL;
+    if_info * iinfo = NULL;
     for (size_t all = 0; cmds[all] != NULL; all++) {
         char * line_cmd = cmds[all];
         result = 0;
@@ -203,7 +204,11 @@ int handle_line(char * line) {
 
         if (strcmp(cmd -> name, "") == 0) {
             result = 0;
-        } else if (strcmp(cmd -> name, "for") != 0) {
+        } else if (strcmp(cmd->name, "if") == 0) {  // Implémentation du handle_if_line ici ?
+        iinfo = if_info_init();
+        result = handle_if_line(line, iinfo);
+        }
+        else if (strcmp(cmd -> name, "for") != 0) {
             if (line_cmd[pos] != '\0') {
                 memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
                 cmd_format(line_cmd, cmd);
@@ -235,6 +240,7 @@ int handle_line(char * line) {
         free(cmds);
     }
     free(line);
+    //printf("FSH | destroy if\n");
     return result;
 
 error:
@@ -250,6 +256,8 @@ error:
         free(cmds);
     }
     free(line);
+    //printf("FSH | destroy if dans error\n");
+    destroy_if_info(iinfo);
     return result;
 }
 
