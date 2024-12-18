@@ -167,6 +167,93 @@ int handle_for(for_info * f) {
     return EXIT_FAILURE;
 }
 
+// Exec commande if. Return 0 si succès, 1 si échec.
+int execute_if(if_info *info) {
+    if (!info || !info->test || !info->test->name) {
+        fprintf(stderr, "Erreur : if_info mal formé.\n");
+        return 1;
+    }
+    
+    // Tableau d'arguments alloué dynamiquement
+    char **test_args = malloc(sizeof(char *) * 10); // Taille initiale (agrandie si besoin)
+    if (!test_args) {
+        perror("malloc");
+        return 1;
+    }
+    test_args[0] = "/usr/bin/test"; // commande test
+    int arg_index = 1;
+    char *name = info->test->name;
+    int in_quote = 0; // Pour guillemets
+    int start = 0;
+    for (int i = 0; name[i] != '\0'; i++) {
+        if (name[i] == '"' || name[i] == '\'') {
+            in_quote = !in_quote; // Bascule dans ou hors des guillemets
+            continue;
+        }
+        if (name[i] == ' ' && !in_quote) {
+            name[i] = '\0';
+            test_args[arg_index++] = &name[start];
+            //printf("execute_if | contenu de test_args[%d] :%s\n", arg_index, test_args[arg_index]);
+            start = i + 1;
+
+            if (arg_index % 10 == 0) { // Réallocation si nécessaire
+                test_args = realloc(test_args, sizeof(char *) * (arg_index + 10));
+                if (!test_args) {
+                    perror("realloc");
+                    return 1;
+                }
+            }
+        }
+    }
+    if (name[start] != '\0') {
+        test_args[arg_index++] = &name[start];
+    }
+    test_args[arg_index] = NULL; // NULL-terminer
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        perror("fork");
+        free(test_args);
+        return 1;
+    }
+    if (pid == 0) {
+        execvp(test_args[0], test_args);
+        perror("execvp");
+        exit(1);
+    }
+    int status;
+    if (waitpid(pid, &status, 0) < 0) {
+        perror("waitpid");
+        free(test_args);
+        return 1;
+    }
+    free(test_args);
+    
+    // Test réussi si le code de retour est 0
+    if (WIFEXITED(status)) {
+        int exit_status = WEXITSTATUS(status);
+        //printf("execute_if | Code de retour de test : %d\n", exit_status);
+        char *copy = NULL;
+        if (exit_status == 0) {
+            // Condition vraie
+            if (info->cmd_true) {
+                //printf("execute_if | Condition vraie, exécution de cmd_true\n");
+                copy = malloc((strlen(info->cmd_true)+1) * sizeof(char));
+                return handle_line(info->cmd_true);
+            }
+        } else {
+            // Condition fausse
+            if (info->cmd_false) {
+                //printf("execute_if | Condition fausse, exécution de cmd_false\n");
+                copy = malloc((strlen(info->cmd_false)+1) * sizeof(char));
+                return handle_line(info->cmd_false);
+            }
+        }
+    }
+    //printf("Condition fausse et pas de cmd_false, return 0\n");
+    return 0;
+}
+
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
 int handle_line(char * line) { 
     char ** cmds = handle_cmd(line);
@@ -205,8 +292,7 @@ int handle_line(char * line) {
         if (strcmp(cmd -> name, "") == 0) {
             result = 0;
         } else if (strcmp(cmd->name, "if") == 0) {  // Implémentation du handle_if_line ici ?
-        iinfo = if_info_init();
-        result = handle_if_line(line, iinfo);
+        iinfo = handle_if_line(line, iinfo);
         }
         else if (strcmp(cmd -> name, "for") != 0) {
             if (line_cmd[pos] != '\0') {
