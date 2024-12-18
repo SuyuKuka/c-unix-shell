@@ -233,19 +233,16 @@ int execute_if(if_info *info) {
     if (WIFEXITED(status)) {
         int exit_status = WEXITSTATUS(status);
         //printf("execute_if | Code de retour de test : %d\n", exit_status);
-        char *copy = NULL;
         if (exit_status == 0) {
             // Condition vraie
             if (info->cmd_true) {
                 //printf("execute_if | Condition vraie, exécution de cmd_true\n");
-                copy = malloc((strlen(info->cmd_true)+1) * sizeof(char));
                 return handle_line(info->cmd_true);
             }
         } else {
             // Condition fausse
             if (info->cmd_false) {
                 //printf("execute_if | Condition fausse, exécution de cmd_false\n");
-                copy = malloc((strlen(info->cmd_false)+1) * sizeof(char));
                 return handle_line(info->cmd_false);
             }
         }
