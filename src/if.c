@@ -21,16 +21,11 @@ void destroy_if_info(if_info *info) {
             info->test = NULL;
         }
         if (info->cmd_true != NULL) {
-            if (info->cmd_true != info->test) {
-                destroy_cmd_info(info->cmd_true);
-            }
+            free(info->cmd_true);
             info->cmd_true = NULL;
         }
         if (info->cmd_false != NULL) {
-            if (info->cmd_false != info->test && info->cmd_false != info->cmd_true) {
-                printf("destroy_if_info | info->cmd_false\n");
-                destroy_cmd_info(info->cmd_false);
-            }
+            free(info->cmd_false);
             info->cmd_false = NULL;
         }
         free(info);
