@@ -215,8 +215,7 @@ int execute_if(if_info *info) {
         perror("fork");
         free(test_args);
         return 1;
-    }
-    if (pid == 0) {
+    } else if (pid == 0) {
         execvp(test_args[0], test_args);
         perror("execvp");
         exit(1);
@@ -290,7 +289,7 @@ int handle_line(char * line) {
             result = 0;
         } else if (strcmp(cmd->name, "if") == 0) {  // Implémentation du handle_if_line ici ?
         iinfo = handle_if_line(line);
-        execute_if(iinfo);
+        result = execute_if(iinfo);
         }
         else if (strcmp(cmd -> name, "for") != 0) {
             if (line_cmd[pos] != '\0') {
