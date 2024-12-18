@@ -63,7 +63,7 @@ char *strip_brackets(char *condition) {
 * Analyse une ligne de commande, vérifie si il s'agit d'un if. 
 * Return 0 si succès, 1 en cas d'erreur de syntaxe.
 */
-int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entraîne pas de pb vu que pointeurs 
+int handle_if_line(char *line, if_info *info) {
     if(!line || !info) {
         fprintf(stderr, SYNTAX_ERR);
         return 1;
@@ -77,19 +77,17 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     }
     cursor++; // on skip ' '
     
-    // CONDITION
+    // CONDITION - PREDICAT
     char *condition_start = cursor;
     while (*cursor != '\0' && *cursor != '{') cursor++;
     if (*cursor != '{') {
         fprintf(stderr, "Erreur : '{' manquant après la condition.\n");
         return 1;
     }
-
     char *condition_end = cursor;
     size_t condition_len = condition_end - condition_start;
 
-    // Extraire la condition
-    char *condition = malloc(condition_len + 1);
+    char *condition = malloc(condition_len + 1);    // Extraction de la condition
     if (!condition) {
         perror("malloc");
         return 1;
@@ -97,14 +95,12 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     memcpy(condition, condition_start, condition_len);
     condition[condition_len] = '\0';
 
-    // Nettoyer les crochets autour de la condition
-    char *clean_condition = strip_brackets(condition);
+    char *clean_condition = strip_brackets(condition);  // Nettoie crochets autour de la condition
     free(condition);
     if (!clean_condition) {
         fprintf(stderr, "Erreur : nettoyage des crochets échoué.\n");
         return 1;
     }
-
     // Parser la condition comme une commande
     cmd_info *new_cmd = malloc(sizeof(cmd_info));
     if (!new_cmd) {
@@ -120,9 +116,9 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
         return 1;
     }
     memcpy(new_name, clean_condition, strlen(clean_condition) + 1);  // Copie brute de la condition
-    new_cmd->name = new_name;  // La chaîne brute est stockée dans 'name'
-    new_cmd->opt = NULL;       // Pas d'options pour cette commande
-    new_cmd->args = NULL;      // Pas d'arguments supplémentaires pour cette commande
+    new_cmd->name = new_name;  // chaîne stockée dans 'name'
+    new_cmd->opt = NULL;
+    new_cmd->args = NULL;
     info->test = new_cmd;  // Stocke directement dans info->test
     //printf("info->test->name post 'parse' :%s\n", info->test->name);
     free(clean_condition);
@@ -130,6 +126,7 @@ int handle_if_line(char *line, if_info *info) { // check si parse_cmd() n'entra�
     cursor++;
     while (isspace((unsigned char)*cursor)) cursor++;
 
+    // CMD TRUE
     char *cmd_true_start = cursor;
     while (*cursor != '\0' && *cursor != '}') cursor++;
     if (*cursor == '\0') {
