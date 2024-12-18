@@ -292,7 +292,7 @@ char ** handle_cmd(char * line) {
             continue;
         }
 
-        if (line[pos] == ';' && for_cmd == 0) {
+        if (line[pos] == ';' && for_cmd == 0) { // ?
             cmd[nb_cmd][pos_cmd] = '\0';
             pos++;
             nb_cmd++;
