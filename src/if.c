@@ -8,12 +8,12 @@ if_info *if_info_init() {   // Intialisation d'une struct if_info
     }
     info->test = NULL;  // Test du if
     info->cmd_true = calloc(CMD_SIZE, sizeof(char));  // Commande effectuée si test = true
-    if(cmd_true == NULL) {
+    if(info->cmd_true == NULL) {
         destroy_if_info(info);
         return NULL;
     }
     info->cmd_false = calloc(CMD_SIZE, sizeof(char)); // Si 'else', commande effectuée si test = false
-    if(cmd_false == NULL) {
+    if(info->cmd_false == NULL) {
         destroy_if_info(info);
         return NULL;
     }
