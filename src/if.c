@@ -73,6 +73,11 @@ if_info *handle_if_line(char *line) {
         return NULL;
     }
     char *cursor = line;
+    /*  SOLUTION POUR DERNIER TEST: EFFACER ACCOLADE AVANT LE ELSE. POUR CA, ON MET CARACTERE NUL JUSTE AVANT ELSE POUR 
+    char *else_cursor = line;
+    while (strncmp(else_cursor, "else", 4)) else_cursor++;
+    *(else_cursor - 1) = '\0';
+    */
 
     while (*cursor != '\0' && *cursor != ' ') cursor++; // Avance jusqu'au 1er espace puis check si mot=='if'
     if (strncmp(line, "if", cursor - line) != 0) {
@@ -227,83 +232,3 @@ if_info *handle_if_line(char *line) {
     }
     return info;    // return le if info
 }
-
-/*  
-if (is_test_command) { 
-    // Cas 'test': avancer jusqu'à '{' sans gérer les crochets
-    while (*cursor != '\0' && *cursor != '{' && !isspace((unsigned char)*cursor)) {
-        cursor++;
-    }
-    test_end = cursor;
-    while (isspace((unsigned char)*cursor)) cursor++;  // Sauter les espaces après la condition jusqu'à '{
-    if (*cursor != '{') {
-        fprintf(stderr, "CHECK avec test, '{' manquant.\n");
-        return 1;
-    }
-    cursor++;
-} else { 
-    // Cas '[' : vérifier les crochets équilibrés
-    size_t bracket_balance = 1;  // Initialise avec '[' déjà détecté
-    while (*cursor != '\0' && bracket_balance > 0) {
-        if (*cursor == '[') bracket_balance++;
-        if (*cursor == ']') bracket_balance--;
-        cursor++;
-    }
-    if (bracket_balance != 0) {
-        fprintf(stderr, "Erreur : problème de crochets dans la condition TEST.\n");
-        return 1;
-    }
-    test_end = cursor - 1;  // Pos avant ']'
-    if (*test_end != ']') {
-        fprintf(stderr, "Erreur : ']' manquant à la fin de la condition.\n");
-        return 1;
-    }
-}
-
-    // TEST
-    size_t test_len = test_end - test_start;
-    char *test = malloc(test_len + 1);  // +1 pour rajouter '\0'
-    if (!test) {
-        perror("malloc");
-        return 1;
-    }
-    memcpy(test, test_start, test_len);
-    test[test_len] = '\0';
-    // trim du bled revisité
-    char *trim_start = test;
-    while (isspace((unsigned char)*trim_start)) trim_start++; // Trim gauche
-    char *trim_end = trim_start + strlen(trim_start) - 1;
-    while (trim_end > trim_start && isspace((unsigned char)*trim_end)) trim_end--; // Trim droit
-    *(trim_end + 1) = '\0';
-
-    //
-    cmd_info *new_cmd = malloc(sizeof(cmd_info));
-    if (!new_cmd) {
-        perror("malloc");
-        free(test);
-        return 1;
-    }
-    char *new_name = malloc(strlen(trim_start) + 1);  // Alloue mémoire pour la nouvelle copie
-    if (!new_name) {
-        perror("malloc");
-        free(test);
-        free(new_cmd);
-        return 1;
-    }
-    memcpy(new_name, trim_start, strlen(trim_start) + 1);
-    new_cmd->name = new_name;     // chaîne brute dans 'name'
-    new_cmd->opt = NULL;
-    new_cmd->args = NULL;
-    info->test = new_cmd;
-    free(test);
-
-    //printf("handle_if_line | Test atteint :%s\n", (char *)info->test->name);  */
-
-    /* CMD_TRUE
-    while (isspace((unsigned char)*cursor)) cursor++; // Sauter les espaces
-    if (*cursor != '{') {
-        fprintf(stderr, "Erreur : CMD_TRUE mal formée, '{' manquant.\n");
-        return 1;
-    }
-    cursor++; 
-    */
