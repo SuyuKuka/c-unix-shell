@@ -284,9 +284,13 @@ int handle_line(char * line) {
 
         if (strcmp(cmd -> name, "") == 0) {
             result = 0;
-        } else if (strcmp(cmd->name, "if") == 0) {  // Implémentation du handle_if_line ici ?
+        } else if (strcmp(cmd->name, "if") == 0) {
         iinfo = handle_if_line(line);
-        int test_result = execute_if(iinfo); // externalcmd pour la condition?
+        if(iinfo == NULL) {
+            result = 1;
+            goto error;
+        }
+        int test_result = execute_if(iinfo);
         if(test_result == 0) {
             if(iinfo->cmd_true) {
                 result = handle_line(iinfo->cmd_true);
@@ -296,7 +300,7 @@ int handle_line(char * line) {
                 result = handle_line(iinfo->cmd_false);
             }
         }
-        //destroy_if_info(iinfo);
+        //destroy_if_info(iinfo); <--- LIE A PB VALGRIND ? mais quand non-commenté cause free(): double free detected in tcache 2
         }
         else if (strcmp(cmd -> name, "for") != 0) {
             if (line_cmd[pos] != '\0') {
@@ -330,7 +334,6 @@ int handle_line(char * line) {
         free(cmds);
     }
     free(line);
-    //printf("FSH | destroy if\n");
     return result;
 
 error:
@@ -346,8 +349,9 @@ error:
         free(cmds);
     }
     free(line);
-    //printf("FSH | destroy if dans error\n");
-    destroy_if_info(iinfo);
+    if(iinfo != NULL) {
+        destroy_if_info(iinfo);
+    }
     return result;
 }
 
