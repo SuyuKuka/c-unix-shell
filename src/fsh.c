@@ -285,24 +285,40 @@ int handle_line(char * line) {
         if (strcmp(cmd -> name, "") == 0) {
             result = 0;
         } else if (strcmp(cmd->name, "if") == 0) {
-        iinfo = handle_if_line(line);
-        if(iinfo == NULL) {
-            result = 1;
-            goto error;
-        }
-        int test_result = execute_if(iinfo);
-        if(test_result == 0) {
-            if(iinfo->cmd_true) {
-                result = handle_line(iinfo->cmd_true);
+            iinfo = handle_if_line(line);
+            if (iinfo == NULL) {
+                result = 1;
+                goto error;
             }
-        } else {
-            if(iinfo->cmd_false) {
-                result = handle_line(iinfo->cmd_false);
-            }
-        }
-        //destroy_if_info(iinfo); <--- LIE A PB VALGRIND ? mais quand non-commenté cause free(): double free detected in tcache 2
-        }
-        else if (strcmp(cmd -> name, "for") != 0) {
+            int test_result = execute_if(iinfo);
+            if (test_result == 0) {
+                if (iinfo -> cmd_true != NULL) {
+                    result = handle_line(iinfo -> cmd_true);
+                    destroy_cmd_info(iinfo -> test);
+                    iinfo -> test = NULL;
+                    free(iinfo -> cmd_false);
+                    iinfo -> cmd_false = NULL;
+                    free(iinfo);
+                    iinfo = NULL;
+                } else {
+                    result = 1;
+                    goto error;
+                }
+            } else {
+                if (iinfo -> cmd_false != NULL) {
+                    result = handle_line(iinfo -> cmd_false);
+                    destroy_cmd_info(iinfo -> test);
+                    iinfo -> test = NULL;
+                    free(iinfo -> cmd_true);
+                    iinfo -> cmd_true = NULL;
+                    free(iinfo);
+                    iinfo = NULL;
+                } else {
+                    result = 1;
+                    goto error;
+                }
+            } 
+        } else if (strcmp(cmd -> name, "for") != 0) {
             if (line_cmd[pos] != '\0') {
                 memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
                 cmd_format(line_cmd, cmd);

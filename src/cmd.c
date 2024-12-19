@@ -30,11 +30,11 @@ cmd_info * cmd_info_init() {
 void destroy_cmd_info(cmd_info * cmd) {
     if (cmd != NULL) {
         free(cmd -> name);
-        cmd->name = NULL;
+        cmd -> name = NULL;
         free(cmd -> opt);
-        cmd->opt = NULL;
+        cmd -> opt = NULL;
         free(cmd -> args);
-        cmd->args = NULL;
+        cmd -> args = NULL;
     }
     free(cmd);
 }
