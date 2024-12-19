@@ -2,20 +2,20 @@
 /*
 * Intialisation d'une struct if_info
 */
-if_info *if_info_init() {
+if_info * if_info_init() {
     if_info *info = malloc(sizeof(if_info));
     if (info == NULL) {
         perror("malloc");
         return NULL;
     }
-    info->test = NULL;
-    info->cmd_true = calloc(CMD_SIZE, sizeof(char));  // Commande effectuée si test = true
-    if(info->cmd_true == NULL) {
+    info -> test = NULL;
+    info -> cmd_true = calloc(CMD_SIZE, sizeof(char));  // Commande effectuée si test = true
+    if (info -> cmd_true == NULL) {
         destroy_if_info(info);
         return NULL;
     }
-    info->cmd_false = calloc(CMD_SIZE, sizeof(char)); // Si 'else', commande effectuée si test = false
-    if(info->cmd_false == NULL) {
+    info -> cmd_false = calloc(CMD_SIZE, sizeof(char)); // Si 'else', commande effectuée si test = false
+    if (info -> cmd_false == NULL) {
         destroy_if_info(info);
         return NULL;
     }
@@ -24,18 +24,18 @@ if_info *if_info_init() {
 
 
 void destroy_if_info(if_info *info) {
-    if (info) {
-        if (info->test != NULL) {
-            destroy_cmd_info(info->test);
-            info->test = NULL;
+    if (info != NULL) {
+        if (info -> test != NULL) {
+            destroy_cmd_info(info -> test);
+            info -> test = NULL;
         }
-        if (info->cmd_true != NULL) {
-            free(info->cmd_true);
-            info->cmd_true = NULL;
+        if (info -> cmd_true != NULL) {
+            free(info -> cmd_true);
+            info -> cmd_true = NULL;
         }
-        if (info->cmd_false != NULL) {
-            free(info->cmd_false);
-            info->cmd_false = NULL;
+        if (info -> cmd_false != NULL) {
+            free(info -> cmd_false);
+            info -> cmd_false = NULL;
         }
         free(info);
     }
@@ -60,6 +60,7 @@ char *strip_brackets(char *condition) {
 
     memcpy(clean_condition, condition + start, new_len);
     clean_condition[new_len] = '\0';
+    free(condition);
     return clean_condition;
 }
 
@@ -140,12 +141,12 @@ char *extract_block(const char *line, int *start) {
 * Analyse une ligne de commande, vérifie si il s'agit d'un if. 
 * Return 0 si succès, 1 en cas d'erreur de syntaxe.
 */
-if_info *handle_if_line(char *line) {
+if_info * handle_if_line(char *line) {
     if (line == NULL) {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
         return NULL;
     }
-    if_info *info = if_info_init(); // Initialise la struct
+    if_info * info = if_info_init(); // Initialise la struct
     if (info == NULL) {
         perror("if_info_init");
         return NULL;
@@ -162,52 +163,49 @@ if_info *handle_if_line(char *line) {
 
     // 2. Extraction de la condition (jusqu'à '{')
     while (isspace((unsigned char)*cursor)) cursor++; // Skip espaces
-    char *condition_start = cursor;
+    char * condition_start = cursor;
     while (*cursor != '\0' && *cursor != '{') cursor++;
     if (*cursor != '{') {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
         goto error;
     }
     size_t condition_len = cursor - condition_start;
-    char *condition = custom_strndup(condition_start, condition_len);
+    char * condition = custom_strndup(condition_start, condition_len);
     if (condition == NULL) {
         perror("strndup");
-        goto error; //
+        goto error;
     }
 
     condition = strip_brackets(condition);
-    cmd_info *new_cmd = malloc(sizeof(cmd_info));
+    cmd_info * new_cmd = malloc(sizeof(cmd_info));
     if (new_cmd == NULL) {
         perror("malloc");
-        //free(condition);
         goto error;
     }
-    char *new_name = malloc(strlen(condition) + 1);  // Alloue mémoire pour copie
+    char * new_name = malloc(strlen(condition) + 1);  // Alloue mémoire pour copie
     if (new_name == NULL) {
         perror("malloc");
-        //free(new_cmd);
-        //free(condition);
         goto error;
     }
     memcpy(new_name, condition, strlen(condition) + 1);  // Copie de la condition
-    new_cmd->name = new_name;  // chaîne stockée dans 'name'
-    new_cmd->opt = NULL;
-    new_cmd->args = NULL;
-    info->test = new_cmd; // Transforme la condition en commande
+    new_cmd -> name = new_name;  // chaîne stockée dans 'name'
+    new_cmd -> opt = NULL;
+    new_cmd -> args = NULL;
+    info -> test = new_cmd; // Transforme la condition en commande
     free(condition);
 
     // 3. Extraction de cmd_true (jusqu'à '}')
-    while (isspace((unsigned char)*cursor)) cursor++;
+    while (isspace((unsigned char) * cursor)) cursor++;
     int start = cursor - line; // Position actuelle
-    info->cmd_true = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
-    if (info->cmd_true == NULL) {
+    info -> cmd_true = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
+    if (info -> cmd_true == NULL) {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
         goto error;
     }
     cursor = line + start; // Maj curseur après le bloc cmd_true
 
     // 4. Vérification & extraction de cmd_false si "else" présent
-    while (isspace((unsigned char)*cursor)) cursor++;
+    while (isspace((unsigned char) * cursor)) cursor++;
     if (strncmp(cursor, "else", 4) == 0) {
         cursor += 4; // Skip "else"
         while (isspace((unsigned char)*cursor)) cursor++;
@@ -217,20 +215,19 @@ if_info *handle_if_line(char *line) {
         }
 
         start = cursor - line;
-        info->cmd_false = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
-        if (info->cmd_false == NULL) {
+        info -> cmd_false = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
+        if (info -> cmd_false == NULL) {
             write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
             goto error;
         }
         cursor = line + start; // Maj curseur après le bloc cmd_false
     }
-
     return info;
 
     error:
-    if(condition != NULL) free(condition);
-    if(new_cmd != NULL) {
-        if(new_cmd->name != NULL) free(new_cmd->name);
+    if (condition != NULL) free(condition);
+    if (new_cmd != NULL) {
+        if (new_cmd -> name != NULL) free(new_cmd -> name);
         free(new_cmd);
     }
     destroy_if_info(info);
