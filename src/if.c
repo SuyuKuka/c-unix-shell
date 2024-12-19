@@ -197,7 +197,9 @@ if_info * handle_if_line(char *line) {
     // 3. Extraction de cmd_true (jusqu'à '}')
     while (isspace((unsigned char) * cursor)) cursor++;
     int start = cursor - line; // Position actuelle
-    info -> cmd_true = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
+    char * tmp = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
+    memmove(info -> cmd_true, tmp, strlen(tmp) + 1);
+    free(tmp);
     if (info -> cmd_true == NULL) {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
         goto error;
@@ -215,7 +217,9 @@ if_info * handle_if_line(char *line) {
         }
 
         start = cursor - line;
-        info -> cmd_false = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
+        char * tmp = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
+        memmove(info -> cmd_false, tmp, strlen(tmp) + 1);
+        free(tmp);
         if (info -> cmd_false == NULL) {
             write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
             goto error;
