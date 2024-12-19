@@ -169,7 +169,7 @@ int handle_for(for_info * f) {
 
 // Exec commande if. Return 0 si succès, 1 si échec.
 int execute_if(if_info *info) {
-    if (!info || !info->test || !info->test->name) {
+    if (!info || !info -> test || !info -> test -> name) {
         fprintf(stderr, "Erreur : if_info mal formé.\n");
         return 1;
     }
@@ -182,7 +182,7 @@ int execute_if(if_info *info) {
     }
     test_args[0] = "/usr/bin/test"; // commande test
     int arg_index = 1;
-    char *name = info->test->name;
+    char *name = info -> test -> name;
     int in_quote = 0; // Pour guillemets
     int start = 0;
     for (int i = 0; name[i] != '\0'; i++) {
@@ -217,11 +217,11 @@ int execute_if(if_info *info) {
         return 1;
     } else if (pid == 0) {
         int null = open("/dev/null", O_WRONLY);
-        if(null == 1) {
+        if (null == 1) {
             perror("Erreur : /dev/null");
             exit(1);
         }
-        if(dup2(null, STDERR_FILENO) == -1) {
+        if (dup2(null, STDERR_FILENO) == -1) {
             perror("dup2");
             exit(1);
         }
@@ -243,7 +243,6 @@ int execute_if(if_info *info) {
     if (WIFEXITED(status)) {
         return WEXITSTATUS(status);
     }
-    //printf("Condition fausse et pas de cmd_false, return 0\n");
     return 1;
 }
 
@@ -284,7 +283,7 @@ int handle_line(char * line) {
 
         if (strcmp(cmd -> name, "") == 0) {
             result = 0;
-        } else if (strcmp(cmd->name, "if") == 0) {
+        } else if (strcmp(cmd -> name, "if") == 0) {
             iinfo = handle_if_line(line);
             if (iinfo == NULL) {
                 result = 1;
@@ -365,7 +364,7 @@ error:
         free(cmds);
     }
     free(line);
-    if(iinfo != NULL) {
+    if (iinfo != NULL) {
         destroy_if_info(iinfo);
     }
     return result;
