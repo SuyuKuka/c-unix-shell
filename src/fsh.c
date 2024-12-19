@@ -216,6 +216,17 @@ int execute_if(if_info *info) {
         free(test_args);
         return 1;
     } else if (pid == 0) {
+        int null = open("/dev/null", O_WRONLY);
+        if(null == 1) {
+            perror("Erreur : /dev/null");
+            exit(1);
+        }
+        if(dup2(null, STDERR_FILENO) == -1) {
+            perror("dup2");
+            exit(1);
+        }
+        close(null);
+        
         execvp(test_args[0], test_args);
         perror("execvp");
         exit(1);
