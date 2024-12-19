@@ -38,121 +38,462 @@ int call_function (cmd_info * cmd) {
     }
 }
 
-int exec_for_cmd(for_info * f) {
+//Fonction qui exécute une commande en passant une copie de la ligne de commande du for.
+int exec_for_cmd(for_info * f, char * path, int var) {
+    char * copy = NULL;
     int result = 0;
+    if  (var == 1) {
+        copy = replace_var(f -> command, path, f -> for_var);
+        if (copy == NULL) {
+            return 1;
+        }
+        return handle_line(copy);
+    } else {
+        copy = malloc((strlen(f->command) + 1) * sizeof(char));
+        if (copy == NULL) {
+            return 1;
+        }
+        memmove(copy, f -> command, strlen(f -> command) +1);
+        return handle_line(copy);
+    }
+}
+
+//Fonction qui vérifie les dépendances du for (options, type de fichiers, etc...)
+int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, int var) {
+    int result = 0;
+    int n = 0;
+    for_info * copy = NULL; 
+    if (strcmp(dir_name, ".") == 0 || strcmp(dir_name, "..") == 0) {
+        return 0;
+    }
+
+    if (f -> opt_r && S_ISDIR(st.st_mode)) {
+        copy = copy_for_info(f);
+        if (copy != NULL) {
+            memmove(copy -> directory, path, strlen(path) + 1);
+            n =  handle_for(copy);
+        } else {
+            perror("Erreur copy -r");
+            exit(1);
+        }
+    } 
+
+    if (f -> opt_type) {
+        if ((f -> file_type == 'f' && !S_ISREG(st.st_mode))
+        ||(f -> file_type == 'd' && !S_ISDIR(st.st_mode))
+        ||(f -> file_type == 'l' && !S_ISLNK(st.st_mode))
+        ||(f -> file_type == 'p' && !S_ISFIFO(st.st_mode))) {
+            return 0;
+        }
+    }
+
+    if (f -> opt_ext) {
+        if (check_ext(path, f -> ext)) {
+            remove_ext(path);
+        } else {
+            return 0;
+        }
+    }
+
+    if(!f -> opt_a && dir_name[0] != '.') {
+        result =  exec_for_cmd(f, path, var);
+    } else if (f -> opt_a) {
+        result = exec_for_cmd(f, path, var);
+    } 
+
+    if (n > result) {
+        result = n;
+    }
+    
+    return result;
+}
+
+//Fonction qui s'occupe des for passés au prompt.
+int handle_for(for_info * f) {
+    int result = 0;
+    int n = 0;
     char * path = NULL; 
     struct dirent * entry = NULL;
-    struct stat s; 
-    int file_arg = -1;
-    char * copy_args = NULL;
+    struct stat st; 
+    int var = -1;
+
+    //Ouverture du fichier.
     DIR * dirp = opendir(f -> directory); 
     if (dirp == NULL) {  
-        perror("Référence invalide"); 
-        result = 1;
+        perror("open dir"); 
         goto error;
     }
+
+    //malloc d'un char * pour sauvegarder la référence courante.
     path = malloc(BUFFER_SIZE * sizeof(char));
     if (path == NULL) {
-        result = 1;
         goto error;
     }
     
-    if (strstr(f -> command -> args, "$F") != NULL) {
-        file_arg = 1;
+    //Vérification permettant de savoir si la variable F est présente.
+    if (strstr(f -> command, "$") != NULL) {
+        var = 1;
     }
     
-    if (f->directory[strlen(f -> directory) - 1] != '/') {
+    //Si le répertoire donné ne possède pas de '/' à la fin de la ligne on lui ajoute et on sauvegarde dans path.
+    if (f -> directory[strlen(f -> directory) - 1] != '/') {
         strcat(f -> directory, "/");
     }
     memmove(path, f -> directory, strlen(f -> directory) + 1);
-    //Copie de la ligne original de l'argument.
-    if (file_arg == 1) {
-        copy_args = calloc(strlen(f -> command -> args) + 1, sizeof(char));
-        memmove(copy_args, f -> command -> args, strlen(f -> command -> args) + 1);
-    }
 
+    //Boucle qui exécute le for.
     while((entry = readdir(dirp)) != NULL) {
-        memmove(path + strlen(f -> directory), entry -> d_name, strlen(entry -> d_name) + 1);
-        if (lstat(path, &s) == 0) {
-            if(entry -> d_name[0] != '.' && S_ISREG(s.st_mode)) {
-                if  (file_arg == 1) {
-                    if (replace_var(f -> command, path) != 0) {goto error;}
-                }
-                int n = call_function(f -> command);
-                if (file_arg == 1) {
-                    memmove(f -> command -> args, copy_args, strlen(copy_args) + 1);
-                }
-                if (n > result) {
-                    result = n;
-                }
+        memmove(path + strlen(f -> directory), entry -> d_name, strlen(entry -> d_name) + 1);    
+        if (lstat(path, &st) == 0) {
+            n = handle_for_dep(f, st, path, entry -> d_name, var);
+            if (result < n) {
+                result = n;
             }
         } else {
+            perror("error");
             closedir(dirp);
-            perror("erreur");
             goto error;
         }
     }
 
     free(path);
-    free(copy_args);
     closedir(dirp);
     destroy_for_info(f);
     return result;
 
     error:
     free(path);
-    free(copy_args);
     destroy_for_info(f);
-    return result;
+    return EXIT_FAILURE;
+}
+
+// Exec commande if. Return 0 si succès, 1 si échec.
+int execute_if(if_info *info) {
+    if (!info || !info -> test || !info -> test -> name) {
+        fprintf(stderr, "Erreur : if_info mal formé.\n");
+        return 1;
+    }
+    
+    // Tableau d'arguments alloué dynamiquement
+    char **test_args = malloc(sizeof(char *) * 10); // Taille initiale (agrandie si besoin)
+    if (!test_args) {
+        perror("malloc");
+        return 1;
+    }
+    test_args[0] = "/usr/bin/test"; // commande test
+    int arg_index = 1;
+    char *name = info -> test -> name;
+    int in_quote = 0; // Pour guillemets
+    int start = 0;
+    for (int i = 0; name[i] != '\0'; i++) {
+        if (name[i] == '"' || name[i] == '\'') {
+            in_quote = !in_quote; // Bascule dans ou hors des guillemets
+            continue;
+        }
+        if (name[i] == ' ' && !in_quote) {
+            name[i] = '\0';
+            test_args[arg_index++] = &name[start];
+            //printf("execute_if | contenu de test_args[%d] :%s\n", arg_index, test_args[arg_index]);
+            start = i + 1;
+
+            if (arg_index % 10 == 0) { // Réallocation si nécessaire
+                test_args = realloc(test_args, sizeof(char *) * (arg_index + 10));
+                if (!test_args) {
+                    perror("realloc");
+                    return 1;
+                }
+            }
+        }
+    }
+    if (name[start] != '\0') {
+        test_args[arg_index++] = &name[start];
+    }
+    test_args[arg_index] = NULL; // NULL-terminer
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        perror("fork");
+        free(test_args);
+        return 1;
+    } else if (pid == 0) {
+        int null = open("/dev/null", O_WRONLY);
+        if (null == 1) {
+            perror("Erreur : /dev/null");
+            exit(1);
+        }
+        if (dup2(null, STDERR_FILENO) == -1) {
+            perror("dup2");
+            exit(1);
+        }
+        close(null);
+        
+        execvp(test_args[0], test_args);
+        perror("execvp");
+        exit(1);
+    }
+    int status;
+    if (waitpid(pid, &status, 0) < 0) {
+        perror("waitpid");
+        free(test_args);
+        return 1;
+    }
+    free(test_args);
+    
+    // Test réussi si le code de retour est 0
+    if (WIFEXITED(status)) {
+        return WEXITSTATUS(status);
+    }
+    return 1;
 }
 
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
-int handle_line(char * line) {
+int handle_line(char * line) { 
+    char ** cmds = handle_cmd(line);
+    if (cmds == NULL) {
+        free(line);
+        return EXIT_FAILURE;
+    }
+
     int result = 0;
     cmd_info * cmd = NULL;
     for_info * f = NULL;
-    cmd = cmd_info_init();
-    if (cmd == NULL) {
-        result = 1;
-        goto error;
-    }
-    
-    size_t i = 0;
-
-    while(isspace(line[i]) != 0) {i++;}
-   
-    while(isspace(line[i]) == 0 && line[i] != '\0') {
-        cmd -> name[i] = line[i];
-        i++;
-    }
-    
-
-    if (strcmp(cmd -> name, "") == 0) {
+    if_info * iinfo = NULL;
+    for (size_t all = 0; cmds[all] != NULL; all++) {
+        char * line_cmd = cmds[all];
         result = 0;
-    } else if (strcmp(cmd -> name,"for") != 0) {
-        if (line[i] != '\0') {
-            memmove(line, line + i + 1, strlen(line) - i + 1);
-            cmd_format(line, cmd);
-        }
-        result = call_function(cmd);
-    } else {
-        if (line[i] != '\0') {
-            memmove(line, line + i + 1, strlen(line) - i + 1);
-        }
-        f = handle_for_line(line);
-        if (f == NULL) {
+        cmd = cmd_info_init();
+        if (cmd == NULL) {
             result = 1;
             goto error;
         }
-        result = exec_for_cmd(f);
+
+        size_t pos = 0;
+        while (isspace(line_cmd[pos]) != 0) { pos++; }
+
+        size_t i = 0;
+        while (isspace(line_cmd[pos]) == 0 && line_cmd[pos] != '\0') {
+            cmd -> name[i++] = line_cmd[pos++];
+        }
+        cmd -> name[i] = '\0';
+
+        if (handle_redirection(line_cmd, pos) != 0) {
+            result = 1;
+            goto error;
+        }
+
+        if (strcmp(cmd -> name, "") == 0) {
+            result = 0;
+        } else if (strcmp(cmd -> name, "if") == 0) {
+            iinfo = handle_if_line(line);
+            if (iinfo == NULL) {
+                result = 1;
+                goto error;
+            }
+            int test_result = execute_if(iinfo);
+            if (test_result == 0) {
+                if (iinfo -> cmd_true != NULL) {
+                    result = handle_line(iinfo -> cmd_true);
+                    destroy_cmd_info(iinfo -> test);
+                    iinfo -> test = NULL;
+                    free(iinfo -> cmd_false);
+                    iinfo -> cmd_false = NULL;
+                    free(iinfo);
+                    iinfo = NULL;
+                } else {
+                    result = 1;
+                    goto error;
+                }
+            } else {
+                if (iinfo -> cmd_false != NULL) {
+                    result = handle_line(iinfo -> cmd_false);
+                    destroy_cmd_info(iinfo -> test);
+                    iinfo -> test = NULL;
+                    free(iinfo -> cmd_true);
+                    iinfo -> cmd_true = NULL;
+                    free(iinfo);
+                    iinfo = NULL;
+                } else {
+                    result = 1;
+                    goto error;
+                }
+            } 
+        } else if (strcmp(cmd -> name, "for") != 0) {
+            if (line_cmd[pos] != '\0') {
+                memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
+                cmd_format(line_cmd, cmd);
+            }
+            result = call_function(cmd);
+        } else {
+            if (line_cmd[pos] != '\0') {
+                memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
+            }
+            f = handle_for_line(line_cmd);
+            if (f == NULL) {
+                result = 2;
+                goto error;
+            }
+            result = handle_for(f);
+        }
+
+        close_redirection();
+        if (cmd != NULL) {
+            destroy_cmd_info(cmd);
+            cmd = NULL;
+        }
+    }
+
+    if (cmds != NULL) {
+        for (size_t j = 0; cmds[j] != NULL; j++) {
+            free(cmds[j]);
+        }
+        free(cmds);
     }
     free(line);
-    destroy_cmd_info(cmd);
     return result;
-    
-    error:
+
+error:
+    close_redirection();
+    if (cmd != NULL) {
+            destroy_cmd_info(cmd);
+            cmd = NULL;
+        }
+    if (cmds != NULL) {
+        for (size_t j = 0; cmds[j] != NULL; j++) {
+            free(cmds[j]);
+        }
+        free(cmds);
+    }
     free(line);
-    destroy_cmd_info(cmd);
+    if (iinfo != NULL) {
+        destroy_if_info(iinfo);
+    }
+    return result;
+}
+
+char ** handle_cmd(char * line) {
+    size_t pos = 0, nb_cmd = 0, pos_cmd = 0, for_cmd = 0;
+    char ** cmd = calloc(BUFFER_SIZE, sizeof(char *));
+    if (cmd == NULL) {
+        perror("calloc");
+        return NULL;
+    }
+
+    while (line[pos] != '\0') {
+        if (cmd[nb_cmd] == NULL) {
+            cmd[nb_cmd] = calloc(BUFFER_SIZE, sizeof(char));
+            if (cmd[nb_cmd] == NULL) {
+                perror("calloc cmd");
+                for (size_t i = 0; i < nb_cmd; i++) {
+                    free(cmd[i]);
+                }
+                free(cmd);
+                return NULL;
+            }
+        }
+
+        if (line[pos] == '{') {
+            for_cmd++;
+            cmd[nb_cmd][pos_cmd++] = line[pos++];
+            continue;
+        } else if (line[pos] == '}') {
+            for_cmd--;
+            cmd[nb_cmd][pos_cmd++] = line[pos++];
+            continue;
+        }
+
+        if (line[pos] == ';' && for_cmd == 0) { // ?
+            cmd[nb_cmd][pos_cmd] = '\0';
+            pos++;
+            nb_cmd++;
+            pos_cmd = 0;
+            while (isspace(line[pos]) != 0) {
+                pos++;
+            }
+            continue;
+        }
+        cmd[nb_cmd][pos_cmd++] = line[pos++];
+    }
+
+    if (cmd[nb_cmd] != NULL) {
+        cmd[nb_cmd][pos_cmd] = '\0';
+    }
+
+    cmd[nb_cmd + 1] = NULL;
+    return cmd;
+}
+
+int handle_redirection(char * line, size_t i) {
+    int result = 0;
+    int redirection_result = 0;
+    char * redirection_type = NULL;
+    char * redirection_file = NULL;
+    size_t pos = i;
+    size_t size = 0;
+
+    while (line[pos] != '\0') {
+        if (line[pos] == '>' || line[pos] == '<' || (line[pos] == '2' && (line[pos + 1] == '>' || line[pos + 1] == '<'))) {
+            // On gere le type de redirection
+            redirection_type = malloc(BUFFER_SIZE * sizeof(char));
+            if (redirection_type == NULL) {
+                result = 1;
+                goto error;
+            }
+            size = 0;
+            redirection_type[size++] = line[pos++];
+
+            while (!isspace(line[pos]) && line[pos] != '\0') {
+                redirection_type[size++] = line[pos++];
+            }
+            redirection_type[size] = '\0';
+
+            // Ignorer les espaces avant le file
+            while (isspace(line[pos]) != 0) { pos++; }
+
+            // On gere le file de redirection
+            redirection_file = malloc(BUFFER_SIZE * sizeof(char));
+            if (redirection_file == NULL) {
+                result = 1;
+                goto error;
+            }
+
+            size = 0;
+            while (line[pos] != '\0' && !isspace(line[pos])) {
+                redirection_file[size++] = line[pos++];
+            }
+            redirection_file[size] = '\0';
+
+            // On applique la redirection
+            redirection_result = redirection(redirection_type, redirection_file);
+            if (redirection_result != 0) {
+                result = 1;
+                goto error;
+            }
+
+            // Redirection multiples
+            if (handle_redirection(line, pos) != 0) {
+                result = 1;
+                goto error;
+            }
+
+            // Suppresion de la redirection du line
+            size_t redirection_size = pos - strlen(redirection_file) - strlen(redirection_type) - 1;
+            while (redirection_size > 0 && isspace(line[redirection_size - 1])) {
+                redirection_size--;
+            }
+
+            while (line[redirection_size] != '\0') { line[redirection_size] = '\0'; redirection_size++; }
+            break;
+        }
+        pos++;
+    }
+
+    free(redirection_type);
+    free(redirection_file);
+    return result;
+
+    error:
+    free(redirection_type);
+    free(redirection_file);
     return result;
 }
 
@@ -167,7 +508,7 @@ void color_prompt(char * prompt, int var) {
         memmove(prompt, GREEN, color_len);
         memmove(prompt + color_len + var_len + cyan_len, prompt + color_len + var_len, strlen(prompt) - var_len);
         memmove(prompt + color_len + var_len, CYAN, cyan_len);
-    } else if (var == 1 || var == 255) {
+    } else if (var > 0) {
         color_len = strlen(RED);
         memmove(prompt + color_len, prompt, strlen(prompt));
         memmove(prompt, RED, color_len);
@@ -185,11 +526,15 @@ void color_prompt(char * prompt, int var) {
 /** Adapte la taille du prompt et remplie le reste de '\0'. */
 void make_prompt(char * prompt, int var) {
     size_t current_size = strlen(prompt);
-    size_t size = PROMPT_SIZE + 1;
+    //Ne pas compter $_
+    size_t size = PROMPT_SIZE - 2;
     char * return_value = calloc(BUFFER_SIZE, sizeof(char));
 
     if (var == 255) { 
-        return_value = "[SIG]";
+        strcat(return_value, "[255]\0");
+
+        //TODO: Remplacer par SIG une fois que c'est demandé.
+        //strcat(return_value, "[SIG]");
     } else {
         strcat(return_value, "[");
         if (var == -1) {
@@ -203,7 +548,6 @@ void make_prompt(char * prompt, int var) {
 
     size_t return_length = strlen(return_value);
     if (current_size > PROMPT_SIZE) {
-        size = size - return_length;
         memmove(prompt, prompt+(current_size - size), size);
         prompt[size] = '\0';
         memmove(prompt, return_value, return_length);
