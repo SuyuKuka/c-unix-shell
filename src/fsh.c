@@ -167,6 +167,85 @@ int handle_for(for_info * f) {
     return EXIT_FAILURE;
 }
 
+// Exec commande if. Return 0 si succès, 1 si échec.
+int execute_if(if_info *info) {
+    if (!info || !info -> test || !info -> test -> name) {
+        fprintf(stderr, "Erreur : if_info mal formé.\n");
+        return 1;
+    }
+    
+    // Tableau d'arguments alloué dynamiquement
+    char **test_args = malloc(sizeof(char *) * 10); // Taille initiale (agrandie si besoin)
+    if (!test_args) {
+        perror("malloc");
+        return 1;
+    }
+    test_args[0] = "/usr/bin/test"; // commande test
+    int arg_index = 1;
+    char *name = info -> test -> name;
+    int in_quote = 0; // Pour guillemets
+    int start = 0;
+    for (int i = 0; name[i] != '\0'; i++) {
+        if (name[i] == '"' || name[i] == '\'') {
+            in_quote = !in_quote; // Bascule dans ou hors des guillemets
+            continue;
+        }
+        if (name[i] == ' ' && !in_quote) {
+            name[i] = '\0';
+            test_args[arg_index++] = &name[start];
+            //printf("execute_if | contenu de test_args[%d] :%s\n", arg_index, test_args[arg_index]);
+            start = i + 1;
+
+            if (arg_index % 10 == 0) { // Réallocation si nécessaire
+                test_args = realloc(test_args, sizeof(char *) * (arg_index + 10));
+                if (!test_args) {
+                    perror("realloc");
+                    return 1;
+                }
+            }
+        }
+    }
+    if (name[start] != '\0') {
+        test_args[arg_index++] = &name[start];
+    }
+    test_args[arg_index] = NULL; // NULL-terminer
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        perror("fork");
+        free(test_args);
+        return 1;
+    } else if (pid == 0) {
+        int null = open("/dev/null", O_WRONLY);
+        if (null == 1) {
+            perror("Erreur : /dev/null");
+            exit(1);
+        }
+        if (dup2(null, STDERR_FILENO) == -1) {
+            perror("dup2");
+            exit(1);
+        }
+        close(null);
+        
+        execvp(test_args[0], test_args);
+        perror("execvp");
+        exit(1);
+    }
+    int status;
+    if (waitpid(pid, &status, 0) < 0) {
+        perror("waitpid");
+        free(test_args);
+        return 1;
+    }
+    free(test_args);
+    
+    // Test réussi si le code de retour est 0
+    if (WIFEXITED(status)) {
+        return WEXITSTATUS(status);
+    }
+    return 1;
+}
+
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
 int handle_line(char * line) { 
     char ** cmds = handle_cmd(line);
@@ -178,6 +257,7 @@ int handle_line(char * line) {
     int result = 0;
     cmd_info * cmd = NULL;
     for_info * f = NULL;
+    if_info * iinfo = NULL;
     for (size_t all = 0; cmds[all] != NULL; all++) {
         char * line_cmd = cmds[all];
         result = 0;
@@ -203,6 +283,40 @@ int handle_line(char * line) {
 
         if (strcmp(cmd -> name, "") == 0) {
             result = 0;
+        } else if (strcmp(cmd -> name, "if") == 0) {
+            iinfo = handle_if_line(line);
+            if (iinfo == NULL) {
+                result = 1;
+                goto error;
+            }
+            int test_result = execute_if(iinfo);
+            if (test_result == 0) {
+                if (iinfo -> cmd_true != NULL) {
+                    result = handle_line(iinfo -> cmd_true);
+                    destroy_cmd_info(iinfo -> test);
+                    iinfo -> test = NULL;
+                    free(iinfo -> cmd_false);
+                    iinfo -> cmd_false = NULL;
+                    free(iinfo);
+                    iinfo = NULL;
+                } else {
+                    result = 1;
+                    goto error;
+                }
+            } else {
+                if (iinfo -> cmd_false != NULL) {
+                    result = handle_line(iinfo -> cmd_false);
+                    destroy_cmd_info(iinfo -> test);
+                    iinfo -> test = NULL;
+                    free(iinfo -> cmd_true);
+                    iinfo -> cmd_true = NULL;
+                    free(iinfo);
+                    iinfo = NULL;
+                } else {
+                    result = 1;
+                    goto error;
+                }
+            } 
         } else if (strcmp(cmd -> name, "for") != 0) {
             if (line_cmd[pos] != '\0') {
                 memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
@@ -250,6 +364,9 @@ error:
         free(cmds);
     }
     free(line);
+    if (iinfo != NULL) {
+        destroy_if_info(iinfo);
+    }
     return result;
 }
 
@@ -284,7 +401,7 @@ char ** handle_cmd(char * line) {
             continue;
         }
 
-        if (line[pos] == ';' && for_cmd == 0) {
+        if (line[pos] == ';' && for_cmd == 0) { // ?
             cmd[nb_cmd][pos_cmd] = '\0';
             pos++;
             nb_cmd++;
