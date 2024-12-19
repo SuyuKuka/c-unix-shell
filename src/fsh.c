@@ -241,24 +241,10 @@ int execute_if(if_info *info) {
     
     // Test réussi si le code de retour est 0
     if (WIFEXITED(status)) {
-        int exit_status = WEXITSTATUS(status);
-        //printf("execute_if | Code de retour de test : %d\n", exit_status);
-        if (exit_status == 0) {
-            // Condition vraie
-            if (info->cmd_true) {
-                //printf("execute_if | Condition vraie, exécution de cmd_true\n");
-                return handle_line(info->cmd_true);
-            }
-        } else {
-            // Condition fausse
-            if (info->cmd_false) {
-                //printf("execute_if | Condition fausse, exécution de cmd_false\n");
-                return handle_line(info->cmd_false);
-            }
-        }
+        return WEXITSTATUS(status);
     }
     //printf("Condition fausse et pas de cmd_false, return 0\n");
-    return 0;
+    return 1;
 }
 
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
@@ -300,7 +286,17 @@ int handle_line(char * line) {
             result = 0;
         } else if (strcmp(cmd->name, "if") == 0) {  // Implémentation du handle_if_line ici ?
         iinfo = handle_if_line(line);
-        result = execute_if(iinfo);
+        int test_result = execute_if(iinfo); // externalcmd pour la condition?
+        if(test_result == 0) {
+            if(iinfo->cmd_true) {
+                result = handle_line(iinfo->cmd_true);
+            }
+        } else {
+            if(iinfo->cmd_false) {
+                result = handle_line(iinfo->cmd_false);
+            }
+        }
+        //destroy_if_info(iinfo);
         }
         else if (strcmp(cmd -> name, "for") != 0) {
             if (line_cmd[pos] != '\0') {

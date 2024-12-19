@@ -61,10 +61,206 @@ char *strip_brackets(char *condition) {
     return clean_condition;
 }
 
+char *custom_strndup(const char *src, size_t n) {
+    if (!src) return NULL; // Vérifie que src n'est pas NULL
+
+    size_t len = strnlen(src, n); // Trouve la longueur de la chaîne jusqu'à n caractères
+    char *dest = malloc(len + 1); // Alloue suffisamment de mémoire (avec espace pour '\0')
+    if (!dest) return NULL;       // Vérifie l'échec de malloc
+
+    memcpy(dest, src, len);       // Copie les 'len' caractères
+    dest[len] = '\0';             // Termine la chaîne par un '\0'
+
+    return dest;
+}
+
+/*
+* Extrait un bloc de texte entre accolades imbriquées.
+*/
+char *extract_block(const char *line, int *start) {
+    int i = *start;
+    int len = 0;
+    int brace_count = 0;
+    char *block = NULL;
+
+    while (line[i] != '\0' && line[i] != '{') { // Parcours jusqu'à 1ère accolade ouvrante '{'
+        i++;
+    }
+    if (line[i] != '{') {
+        fprintf(stderr, "Erreur : Accolade ouvrante non trouvée.\n");
+        return NULL;
+    }
+    // Début du bloc après l'accolade ouvrante
+    int block_start = i + 1; 
+    brace_count++;
+    // Parcours du texte pour trouver la fin du bloc
+    for (i = block_start; line[i] != '\0'; i++) {
+        if (line[i] == '{') {
+            brace_count++; // Nouvelle accolade ouvrante
+        } else if (line[i] == '}') {
+            brace_count--; // Accolade fermante
+            if (brace_count == 0) {
+                break; // Fin du bloc trouvée
+            }
+        }
+    }
+
+    // Check si on a trouvé une accolade fermante
+    if (brace_count != 0) {
+        fprintf(stderr, "Erreur : Accolades non équilibrées.\n");
+        return NULL;
+    }
+    // Calcule la longueur du bloc
+    len = i - block_start;
+    block = malloc(len + 1);    // Alloue la mémoire pour le bloc extrait
+    if (!block) {
+        perror("malloc");
+        return NULL;
+    }
+    // Copier manuellement le contenu dans le tableau alloué
+    for (int j = 0; j < len; j++) {
+        block[j] = line[block_start + j];
+    }
+    block[len] = '\0'; // Terminer la chaîne par '\0'
+    // Maj de la position de départ pour le prochain traitement
+    *start = i + 1; // Ignorer l'accolade fermante
+    return block;
+}
+
+
 /*
 * Analyse une ligne de commande, vérifie si il s'agit d'un if. 
 * Return 0 si succès, 1 en cas d'erreur de syntaxe.
 */
+if_info *handle_if_line(char *line) {
+    if (!line) {
+        fprintf(stderr, SYNTAX_ERR);
+        return NULL;
+    }
+    if_info *info = if_info_init(); // Initialise la struct
+    if (!info) {
+        perror("if_info_init");
+        return NULL;
+    }
+    char *cursor = line;
+
+    // 1. Vérification de la syntaxe : mot-clé "if", useless vu fonctionnement fsh ?
+    while (*cursor != '\0' && isspace((unsigned char)*cursor)) cursor++; // Skip espaces
+    if (strncmp(cursor, "if", 2) != 0 || !isspace(cursor[2])) {
+        fprintf(stderr, SYNTAX_ERR);
+        destroy_if_info(info);
+        return NULL;
+    }
+    cursor += 2; // Skip "if"
+
+    // 2. Extraction de la condition (jusqu'à '{')
+    while (isspace((unsigned char)*cursor)) cursor++; // Skip espaces
+    char *condition_start = cursor;
+    while (*cursor != '\0' && *cursor != '{') cursor++;
+    if (*cursor != '{') {
+        fprintf(stderr, "Erreur : '{' manquant après la condition.\n");
+        destroy_if_info(info);
+        return NULL;
+    }
+    size_t condition_len = cursor - condition_start;
+    char *condition = custom_strndup(condition_start, condition_len);
+    if (!condition) {
+        perror("strndup");
+        destroy_if_info(info);
+        return NULL;
+    }
+
+    condition = strip_brackets(condition);
+    cmd_info *new_cmd = malloc(sizeof(cmd_info));
+    if (new_cmd == NULL) {
+        perror("malloc");
+        free(condition);
+        return NULL;
+    }
+    char *new_name = malloc(strlen(condition) + 1);  // Alloue mémoire pour copie
+    if (new_name == NULL) {
+        perror("malloc");
+        free(new_cmd);
+        free(condition);
+        return NULL;
+    }
+    memcpy(new_name, condition, strlen(condition) + 1);  // Copie de la condition
+    new_cmd->name = new_name;  // chaîne stockée dans 'name'
+    new_cmd->opt = NULL;
+    new_cmd->args = NULL;
+    info->test = new_cmd; // Transforme la condition en commande
+    free(condition);
+
+    // 3. Extraction de cmd_true (jusqu'à '}')
+    while (isspace((unsigned char)*cursor)) cursor++;
+    int start = cursor - line; // Position actuelle
+    info->cmd_true = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
+    if (!info->cmd_true) {
+        fprintf(stderr, "Erreur lors de l'extraction de cmd_true.\n");
+        destroy_if_info(info);
+        return NULL;
+    }
+    cursor = line + start; // Maj curseur après le bloc cmd_true
+
+    // 4. Vérification & extraction de cmd_false si "else" présent
+    while (isspace((unsigned char)*cursor)) cursor++;
+    if (strncmp(cursor, "else", 4) == 0) {
+        cursor += 4; // Skip "else"
+        while (isspace((unsigned char)*cursor)) cursor++;
+        if (*cursor != '{') {
+            fprintf(stderr, "Erreur : '{' manquant après 'else'.\n");
+            destroy_if_info(info);
+            return NULL;
+        }
+
+        start = cursor - line;
+        info->cmd_false = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
+        if (!info->cmd_false) {
+            fprintf(stderr, "Erreur lors de l'extraction de cmd_false.\n");
+            destroy_if_info(info);
+            return NULL;
+        }
+        cursor = line + start; // Maj curseur après le bloc cmd_false
+    }
+
+    return info;
+}
+
+
+
+
+/*
+
+//
+    printf("handle_if_line | condition pre strip:%s\n", condition);
+    condition = strip_brackets(condition);
+    printf("handle_if_line | condition post strip:%s\n", condition);
+    cmd_info *new_cmd = malloc(sizeof(cmd_info));
+    if (new_cmd == NULL) {
+        perror("malloc");
+        free(condition);
+        return NULL;
+    }
+    char *new_name = malloc(strlen(condition) + 1);  // Alloue mémoire pour la copie brute
+    if (new_name == NULL) {
+        perror("malloc");
+        free(new_cmd);
+        free(condition);
+        return NULL;
+    }
+    memcpy(new_name, condition, strlen(condition) + 1);  // Copie brute de la condition
+    new_cmd->name = new_name;  // chaîne stockée dans 'name'
+    new_cmd->opt = NULL;
+    new_cmd->args = NULL;
+    info->test = new_cmd; // Transforme la condition en commande
+    printf("handle_if_line | info->test->name :%s\n", info->test->name);
+    free(condition);
+
+
+/*
+* Analyse une ligne de commande, vérifie si il s'agit d'un if. 
+* Return 0 si succès, 1 en cas d'erreur de syntaxe.
+*
 if_info *handle_if_line(char *line) {
     if_info *info = NULL;
     info = if_info_init();
@@ -73,12 +269,6 @@ if_info *handle_if_line(char *line) {
         return NULL;
     }
     char *cursor = line;
-    /*  SOLUTION POUR DERNIER TEST: EFFACER ACCOLADE AVANT LE ELSE. POUR CA, ON MET CARACTERE NUL JUSTE AVANT ELSE POUR 
-    char *else_cursor = line;
-    while (strncmp(else_cursor, "else", 4)) else_cursor++;
-    *(else_cursor - 1) = '\0';
-    */
-
     while (*cursor != '\0' && *cursor != ' ') cursor++; // Avance jusqu'au 1er espace puis check si mot=='if'
     if (strncmp(line, "if", cursor - line) != 0) {
         fprintf(stderr, SYNTAX_ERR);
@@ -232,3 +422,4 @@ if_info *handle_if_line(char *line) {
     }
     return info;    // return le if info
 }
+*/
