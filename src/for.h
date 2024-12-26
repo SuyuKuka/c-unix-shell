@@ -10,6 +10,7 @@
 #define TOO_MANY_OPT "Nombre d'options invalide.\n"
 #define INVALID_OPT "Options invalides.\n"
 #define INVALID_TYPE "Option -t type invalide.\n"
+#define INVALID_MAX "Option -p MAX invalide\n"
 #define FILE_SIZE 512
 #define DIR_SIZE 512
 #define MAX_OPTIONS 8 //On compte aussi les dépendances des options ex: -e EXT = 2 
