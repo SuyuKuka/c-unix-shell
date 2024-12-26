@@ -67,7 +67,8 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
         return 0;
     }
 
-    if (f -> opt_r && S_ISDIR(st.st_mode)) {
+    if ((f -> opt_a && f -> opt_r) && S_ISDIR(st.st_mode)
+    || dir_name[0] != '.' && f -> opt_r && S_ISDIR(st.st_mode)) {
         copy = copy_for_info(f);
         if (copy != NULL) {
             memmove(copy -> directory, path, strlen(path) + 1);
