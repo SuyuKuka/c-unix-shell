@@ -38,7 +38,7 @@ int call_function (cmd_info * cmd) {
     }
 }
 
-//Fonction qui exécute une commande en passant une copie de la ligne de commande du for.
+//Fonction qui exécute une commande en passant une copie de la ligne de commande du for. exec-erreur trop long bloquant process enfant ?
 int exec_for_cmd(for_info * f, char * path, int var) {
     char * copy = NULL;
     int result = 0;
@@ -58,13 +58,42 @@ int exec_for_cmd(for_info * f, char * path, int var) {
     }
 }
 
+static int active_processes = 0;
+
 //Fonction qui vérifie les dépendances du for (options, type de fichiers, etc...)
 int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, int var) {
     int result = 0;
     int n = 0;
-    for_info * copy = NULL; 
+    pid_t pid; // PID pour process enfants
+    for_info * copy = NULL;
     if (strcmp(dir_name, ".") == 0 || strcmp(dir_name, "..") == 0) {
         return 0;
+    }
+
+    // Vérification de l'option -p : gestion de processus parallèles
+    if (f->opt_p) {
+        while (active_processes >= f->p_max) {
+            pid_t finished_pid = waitpid(-1, NULL, WNOHANG);
+            if (finished_pid > 0) {
+                active_processes--; // Décrémenter compteur si un enfant a terminé
+            } else if (finished_pid == 0) {
+                usleep(1000); // Pause minimale pour réduire la charge CPU
+            } else {
+                perror("Erreur waitpid");
+                return EXIT_FAILURE;
+            }
+        }
+        pid = fork();
+        if (pid == -1) {
+            perror("Erreur fork");
+            return EXIT_FAILURE;
+        } else if (pid == 0) { // Processus enfant
+            setbuf(stdout, NULL); // Désactiver la mise en tampon
+            // printf("écriture d'un a...\n");
+            exit(exec_for_cmd(f, path, var));
+        } else { // Processus parent
+            active_processes++;
+        }
     }
 
     //Vérification de l'option -r
@@ -111,6 +140,18 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
     }
     
     return result;
+}
+
+// À la fin du programme ou de la boucle principale, wait tous les processus restants
+void wait_for_remaining_processes() {
+    while (active_processes > 0) {
+        if (waitpid(-1, NULL, 0) > 0) {
+            active_processes--;
+        } else {
+            perror("Erreur waitpid");
+            break;
+        }
+    }
 }
 
 //Fonction qui s'occupe des for passés au prompt.
