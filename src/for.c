@@ -44,15 +44,17 @@ void destroy_for_info(for_info * f) {
     free(f);
 }
 
+//Initialise les champs du for_info en fonctions des options.
 int init_options(for_info * f) {
     size_t i = 0;
     while (i < f -> opt_size) {
+        //Option -A
         if (strcmp(f -> options[i], "-A") == 0) {
             f -> opt_a = 1;
-    
+        //Option -r
         } else if (strcmp(f -> options[i], "-r") == 0) {
             f -> opt_r = 1; 
-
+        //Option -e
         } else if (strcmp(f -> options[i], "-e") == 0) {
             if (i + 1 >= f -> opt_size) {
                 write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
@@ -64,7 +66,7 @@ int init_options(for_info * f) {
             }
             f -> ext = f -> options[i + 1];
             i++;
-
+        //Option -t
         } else if (strcmp(f -> options[i], "-t") == 0) {
             if (i + 1 >= f -> opt_size) {
                 write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
@@ -78,6 +80,22 @@ int init_options(for_info * f) {
             type = NULL; 
             f -> opt_type = 1;
             f -> file_type = f -> options[i+1][0];
+            i++;
+        //Option -p    
+        } else if (strcmp(f -> options[i], "-p") == 0) {
+            if (i + 1 >= f -> opt_size) {
+                write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
+                return EXIT_FAILURE;
+            }
+            size_t max_length = strlen(f -> options[i + 1]);
+            for (size_t j = 0; j < max_length; j++) {
+                if (!isdigit(f -> options[i+1][j])) {
+                    write(STDERR_FILENO, INVALID_MAX, strlen(INVALID_MAX));
+                    return EXIT_FAILURE;
+                }   
+            }
+            f -> opt_p = 1;
+            f -> p_max = atoi(f -> options[i+1]);
             i++;
         } else {
             write(STDERR_FILENO, INVALID_OPT,strlen(INVALID_OPT));

@@ -67,6 +67,7 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
         return 0;
     }
 
+    //Vérification de l'option -r
     if ((f -> opt_a && f -> opt_r) && S_ISDIR(st.st_mode)
     || dir_name[0] != '.' && f -> opt_r && S_ISDIR(st.st_mode)) {
         copy = copy_for_info(f);
@@ -79,6 +80,7 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
         }
     } 
 
+    //Vérification de l'option -t TYPE
     if (f -> opt_type) {
         if ((f -> file_type == 'f' && !S_ISREG(st.st_mode))
         ||(f -> file_type == 'd' && !S_ISDIR(st.st_mode))
@@ -88,6 +90,7 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
         }
     }
 
+    //Vérification de l'option -e EXT
     if (f -> opt_ext) {
         if (check_ext(path, f -> ext)) {
             remove_ext(path);
@@ -96,6 +99,7 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
         }
     }
 
+    //Vérification de l'option -A
     if(!f -> opt_a && dir_name[0] != '.') {
         result =  exec_for_cmd(f, path, var);
     } else if (f -> opt_a) {
