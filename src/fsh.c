@@ -38,7 +38,7 @@ int call_function (cmd_info * cmd) {
     }
 }
 
-//Fonction qui exécute une commande en passant une copie de la ligne de commande du for. exec-erreur trop long bloquant process enfant ?
+// Fonction qui exécute une commande en passant une copie de la ligne de commande du for.
 int exec_for_cmd(for_info * f, char * path, int var) {
     char * copy = NULL;
     int result = 0;
@@ -64,7 +64,6 @@ static int active_processes = 0;
 int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, int var) {
     int result = 0;
     int n = 0;
-    pid_t pid; // PID pour process enfants
     for_info * copy = NULL;
     if (strcmp(dir_name, ".") == 0 || strcmp(dir_name, "..") == 0) {
         return 0;
@@ -77,22 +76,23 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
             if (finished_pid > 0) {
                 active_processes--; // Décrémenter compteur si un enfant a terminé
             } else if (finished_pid == 0) {
-                usleep(1000); // Pause minimale pour réduire la charge CPU
+                usleep(1000); // Pause minimale, réduit la charge CPU
             } else {
                 perror("Erreur waitpid");
                 return EXIT_FAILURE;
             }
         }
-        pid = fork();
+        pid_t pid = fork();
         if (pid == -1) {
             perror("Erreur fork");
             return EXIT_FAILURE;
         } else if (pid == 0) { // Processus enfant
-            setbuf(stdout, NULL); // Désactiver la mise en tampon
+            setbuf(stdout, NULL); // Désactiver la mise en tampon pour éviter conflits ?
             // printf("écriture d'un a...\n");
             exit(exec_for_cmd(f, path, var));
         } else { // Processus parent
             active_processes++;
+            return 0;
         }
     }
 
@@ -447,7 +447,7 @@ char ** handle_cmd(char * line) {
             continue;
         }
 
-        if (line[pos] == ';' && for_cmd == 0) { // ?
+        if (line[pos] == ';' && for_cmd == 0) {
             cmd[nb_cmd][pos_cmd] = '\0';
             pos++;
             nb_cmd++;
