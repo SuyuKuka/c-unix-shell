@@ -2,8 +2,8 @@
 #define EXTERNALCMD 
 #include "cmd.h"
 
-int split(const char *, char **);
-
+void destroy_split(char **, int *);
+char ** split(cmd_info * , int * );
 int externalcmd(cmd_info *);
 
 #endif
