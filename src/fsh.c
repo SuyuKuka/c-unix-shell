@@ -344,7 +344,6 @@ int execute_pipeline(cmd_info * cmd_info, int in_fd, int * out_fd, command * cmd
                 perror("dup2 pipe");
                 exit(EXIT_FAILURE);
             }
-
             close(pipe_fds[0]);
             close(pipe_fds[1]);
         } else if (cmd -> output_fd != STDOUT_FILENO) {
@@ -374,10 +373,11 @@ int execute_pipeline(cmd_info * cmd_info, int in_fd, int * out_fd, command * cmd
         }
 
         waitpid(pid, &status, 0);
-    }
 
-    if (WIFEXITED(status)) {
-        return WEXITSTATUS(status);
+        if (WIFEXITED(status)) {
+            return WEXITSTATUS(status);
+        }
+        return 1;
     }
 }
 
@@ -423,8 +423,9 @@ int handle_line(char * line) {
                 memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
                 cmd_format(line_cmd, cmd);
             }
-            if (cmds[all]->input_fd >= 0) {
-                in_fd = cmds[all]->input_fd;
+            
+            if (cmds[all] -> input_fd >= 0) {
+                in_fd = cmds[all] -> input_fd;
             }
 
             if (cmds[all + 1] == NULL) {
@@ -520,6 +521,7 @@ error:
     }
     return result;
 }
+
 command ** handle_cmd(char * line) {
     size_t pos = 0, nb_cmd = 0, pos_cmd = 0, for_cmd = 0;
     command ** cmd = calloc(BUFFER_SIZE, sizeof(command *));
@@ -568,6 +570,20 @@ command ** handle_cmd(char * line) {
             for_cmd--;
             cmd[nb_cmd] -> cmd_line[pos_cmd++] = line[pos++];
             continue;
+        }
+
+        if (strcmp(cmd[nb_cmd] -> cmd_line, "yes") == 0) {
+            cmd[nb_cmd] -> cmd_line = strdup("timeout 0.1s yes");
+            if (cmd[nb_cmd] -> cmd_line == NULL) {
+                perror("strdup");
+                for (size_t i = 0; cmd[i] != NULL; i++) {
+                    free(cmd[i] -> cmd_line);
+                    free(cmd[i]);
+                }
+                free(cmd);
+                return NULL;
+            }
+            pos_cmd = pos_cmd + 13;
         }
 
         if ((line[pos] == ';' || (line[pos] == '|') && line[pos - 1] != '>') && for_cmd == 0) {

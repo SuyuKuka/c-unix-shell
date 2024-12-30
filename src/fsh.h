@@ -10,6 +10,7 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <stdbool.h>
 #include "pwd.h"
 #include "cmd.h"
 #include "cd.h"
@@ -18,7 +19,6 @@
 #include "for.h"
 #include "if.h"
 #include "redirection.h"
-#include <stdbool.h>
 #define BUFFER_SIZE 512
 #define PROMPT_SIZE 30
 #define DEFAULT_COLOR "\001\033[00m\002"
