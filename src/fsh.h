@@ -10,7 +10,6 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <stdbool.h>
 #include "pwd.h"
 #include "cmd.h"
 #include "cd.h"
@@ -25,19 +24,9 @@
 #define GREEN "\001\033[32m\002"
 #define RED "\001\033[91m\002"
 #define CYAN "\001\033[36m\002"
-
-typedef struct {
-    char * cmd_line; 
-    bool is_pipeline; 
-    int input_fd; 
-    int output_fd;
-} command;
-
 int call_function (cmd_info *);
-int execute_pipeline(cmd_info *, int, int *, command *);
 int handle_line(char *);
-command ** handle_cmd(char *);
-void destroy_cmd(command **);
+char ** handle_cmd(char *);
 int handle_redirection(char *, size_t);
 void color_prompt(char *, int);
 void make_prompt(char *, int);
