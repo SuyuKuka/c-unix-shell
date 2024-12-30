@@ -36,6 +36,7 @@ int exec_for(for_info *);
 int for_no_opt(cmd_info *);
 int handle_for(for_info *);
 int handle_for_dep(for_info *, struct stat, char *, char *, int);
+void wait_for_remaining_processes();
 int exec_for_cmd(for_info *, char *, int);
 
 #endif
