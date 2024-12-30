@@ -423,7 +423,7 @@ int handle_line(char * line) {
                 memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
                 cmd_format(line_cmd, cmd);
             }
-            
+
             if (cmds[all] -> input_fd >= 0) {
                 in_fd = cmds[all] -> input_fd;
             }
@@ -456,6 +456,12 @@ int handle_line(char * line) {
                 if (test_result == 0) {
                     if (iinfo -> cmd_true != NULL) {
                         result = handle_line(iinfo -> cmd_true);
+                        destroy_cmd_info(iinfo -> test);
+                        iinfo -> test = NULL;
+                        free(iinfo -> cmd_false);
+                        iinfo -> cmd_false = NULL;
+                        free(iinfo);
+                        iinfo = NULL;
                     } else {
                         result = 1;
                         goto error;
@@ -463,6 +469,12 @@ int handle_line(char * line) {
                 } else {
                     if (iinfo -> cmd_false != NULL) {
                         result = handle_line(iinfo -> cmd_false);
+                        destroy_cmd_info(iinfo -> test);
+                        iinfo -> test = NULL;
+                        free(iinfo -> cmd_true);
+                        iinfo -> cmd_true = NULL;
+                        free(iinfo);
+                        iinfo = NULL;
                     } else {
                         result = 1;
                         goto error;
