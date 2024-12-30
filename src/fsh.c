@@ -58,7 +58,9 @@ int exec_for_cmd(for_info * f, char * path, int var) {
     }
 }
 
+// Valeurs pour la gestion du for -p
 static int active_processes = 0;
+int global_result = 0;
 
 //Fonction qui vérifie les dépendances du for (options, type de fichiers, etc...)
 int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, int var) {
@@ -69,14 +71,21 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
         return 0;
     }
 
-    // Vérification de l'option -p : gestion de processus parallèles
+    // Vérification de l'option -p
     if (f->opt_p) {
+        int status;
         while (active_processes >= f->p_max) {
-            pid_t finished_pid = waitpid(-1, NULL, WNOHANG);
+            pid_t finished_pid = waitpid(-1, &status, WNOHANG);
             if (finished_pid > 0) {
-                active_processes--; // Décrémenter compteur si un enfant a terminé
+                active_processes--;
+                if (WIFEXITED(status)) {
+                    int exit_code = WEXITSTATUS(status);
+                    if (exit_code > global_result) {
+                        global_result = exit_code;
+                    }
+                }
             } else if (finished_pid == 0) {
-                usleep(1000); // Pause minimale, réduit la charge CPU
+                usleep(1000);   // mini-pause
             } else {
                 perror("Erreur waitpid");
                 return EXIT_FAILURE;
@@ -86,11 +95,9 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
         if (pid == -1) {
             perror("Erreur fork");
             return EXIT_FAILURE;
-        } else if (pid == 0) { // Processus enfant
-            setbuf(stdout, NULL); // Désactiver la mise en tampon pour éviter conflits ?
-            // printf("écriture d'un a...\n");
+        } else if (pid == 0) {      // Processus enfant
             exit(exec_for_cmd(f, path, var));
-        } else { // Processus parent
+        } else {                    // Processus parent
             active_processes++;
             return 0;
         }
@@ -142,11 +149,19 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
     return result;
 }
 
-// À la fin du programme ou de la boucle principale, wait tous les processus restants
+// À la fin de la boucle principale du for, on wait tous les processus restants pour le cas du -p.
 void wait_for_remaining_processes() {
+    int status;
     while (active_processes > 0) {
-        if (waitpid(-1, NULL, 0) > 0) {
+        pid_t pid = waitpid(-1, &status, 0);
+        if (pid > 0) {
             active_processes--;
+            if (WIFEXITED(status)) {  // Si le process s'est terminé normalement
+                int exit_code = WEXITSTATUS(status);
+                if (exit_code > global_result) {    // Agrège la val max de retour
+                    global_result = exit_code;
+                }
+            }
         } else {
             perror("Erreur waitpid");
             break;
@@ -200,6 +215,11 @@ int handle_for(for_info * f) {
             closedir(dirp);
             goto error;
         }
+    }
+
+    wait_for_remaining_processes(); // Pour le for -p.
+    if (global_result > result) {
+        result = global_result;
     }
 
     free(path);
