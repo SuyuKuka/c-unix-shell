@@ -1,6 +1,12 @@
 #include "fsh.h"
 
-int last_return = -1;
+int last_return = -1; 
+
+void command_signal_handler (int sig) {
+    if (sig == SIGTERM) {
+        exit(255);
+    }
+}
 
 int fsh_exit(cmd_info * cmd) {
     int flag = 1;
@@ -24,17 +30,52 @@ int fsh_exit(cmd_info * cmd) {
     }
 }
 
+/*  Gère l'exécution des commandes. 
+    Appel à fsh_exit si la commande exit est écrite.
+    Sinon crée un processus et gère les autres commandes.
+    Renvoie :
+    0 si tout fonctionne correctement, 
+    1 en cas d'erreur,
+    255 pour la réception de SIGTERM. */
 int call_function (cmd_info * cmd) {
-    if (strcmp("pwd", cmd -> name) == 0) {
-        return pwd(cmd);
-    } else if (strcmp("exit", cmd -> name) == 0) {
-        return fsh_exit(cmd);
-    } else if (strcmp(cmd -> name, "ftype") == 0) {
-        return ftype(cmd);
-    } else if (strcmp(cmd -> name, "cd") == 0) { 
-        return cd(cmd);
+    if (strcmp("exit", cmd -> name) == 0) {
+        fsh_exit(cmd);
     } else {
-        return externalcmd(cmd);
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror("Erreur fork call_function");
+            exit(1);
+        } else if (pid == 0) {
+            struct sigaction sa = {0};
+            sa.sa_handler = command_signal_handler;
+            sigemptyset(&sa.sa_mask);
+            if (sigaction(SIGTERM, &sa, NULL) == -1) {
+                perror("Commande SIGTERM.");
+                exit(1);
+            }
+            if (strcmp("pwd", cmd -> name) == 0) {
+                exit(pwd(cmd));
+            } else if (strcmp(cmd -> name, "ftype") == 0) {
+                exit(ftype(cmd));
+            } else if (strcmp(cmd -> name, "cd") == 0) { 
+                exit(cd(cmd));
+            } else {
+                if (sigaction(SIGTERM, &sa, NULL) == -1) {
+                    perror("Commande SIGTERM.");
+                    exit(1);
+                }
+                exit(externalcmd(cmd));
+            }
+        } else {
+            int status;
+            waitpid(pid, &status, 0);
+            if (WIFEXITED(status)) {
+                int exit_status = WEXITSTATUS(status);
+                if (exit_status != 0) {
+                    return exit_status;
+                }
+            }
+        }
     }
 }
 
@@ -536,10 +577,7 @@ void make_prompt(char * prompt, int var) {
     char * return_value = calloc(BUFFER_SIZE, sizeof(char));
 
     if (var == 255) { 
-        strcat(return_value, "[255]\0");
-
-        //TODO: Remplacer par SIG une fois que c'est demandé.
-        //strcat(return_value, "[SIG]");
+        strcat(return_value, "[SIG]\0");
     } else {
         strcat(return_value, "[");
         if (var == -1) {
@@ -619,5 +657,12 @@ int display_prompt(int var) {
 
 int main() {
     rl_outstream = stderr;
+    struct sigaction ignore_term = {0};
+    ignore_term.sa_handler = SIG_IGN;
+    sigemptyset(&ignore_term.sa_mask);
+    if (sigaction(SIGTERM, &ignore_term, NULL) == -1) {
+        perror("ignore SIGTERM.");
+        exit(1);
+    }
     return display_prompt(last_return);
 }
