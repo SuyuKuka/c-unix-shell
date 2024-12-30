@@ -38,7 +38,7 @@ int call_function (cmd_info * cmd) {
     }
 }
 
-//Fonction qui exécute une commande en passant une copie de la ligne de commande du for.
+// Fonction qui exécute une commande en passant une copie de la ligne de commande du for.
 int exec_for_cmd(for_info * f, char * path, int var) {
     char * copy = NULL;
     int result = 0;
@@ -58,13 +58,49 @@ int exec_for_cmd(for_info * f, char * path, int var) {
     }
 }
 
+// Valeurs pour la gestion du for -p
+static int active_processes = 0;
+int global_result = 0;
+
 //Fonction qui vérifie les dépendances du for (options, type de fichiers, etc...)
 int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, int var) {
     int result = 0;
     int n = 0;
-    for_info * copy = NULL; 
+    for_info * copy = NULL;
     if (strcmp(dir_name, ".") == 0 || strcmp(dir_name, "..") == 0) {
         return 0;
+    }
+
+    // Vérification de l'option -p
+    if (f->opt_p) {
+        int status;
+        while (active_processes >= f->p_max) {
+            pid_t finished_pid = waitpid(-1, &status, WNOHANG);
+            if (finished_pid > 0) {
+                active_processes--;
+                if (WIFEXITED(status)) {
+                    int exit_code = WEXITSTATUS(status);
+                    if (exit_code > global_result) {
+                        global_result = exit_code;
+                    }
+                }
+            } else if (finished_pid == 0) {
+                usleep(1000);   // mini-pause
+            } else {
+                perror("Erreur waitpid");
+                return EXIT_FAILURE;
+            }
+        }
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror("Erreur fork");
+            return EXIT_FAILURE;
+        } else if (pid == 0) {      // Processus enfant
+            exit(exec_for_cmd(f, path, var));
+        } else {                    // Processus parent
+            active_processes++;
+            return 0;
+        }
     }
 
     //Vérification de l'option -r
@@ -113,6 +149,26 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
     return result;
 }
 
+// À la fin de la boucle principale du for, on wait tous les processus restants pour le cas du -p.
+void wait_for_remaining_processes() {
+    int status;
+    while (active_processes > 0) {
+        pid_t pid = waitpid(-1, &status, 0);
+        if (pid > 0) {
+            active_processes--;
+            if (WIFEXITED(status)) {  // Si le process s'est terminé normalement
+                int exit_code = WEXITSTATUS(status);
+                if (exit_code > global_result) {    // Agrège la val max de retour
+                    global_result = exit_code;
+                }
+            }
+        } else {
+            perror("Erreur waitpid");
+            break;
+        }
+    }
+}
+
 //Fonction qui s'occupe des for passés au prompt.
 int handle_for(for_info * f) {
     int result = 0;
@@ -159,6 +215,11 @@ int handle_for(for_info * f) {
             closedir(dirp);
             goto error;
         }
+    }
+
+    wait_for_remaining_processes(); // Pour le for -p.
+    if (global_result > result) {
+        result = global_result;
     }
 
     free(path);
@@ -406,7 +467,7 @@ char ** handle_cmd(char * line) {
             continue;
         }
 
-        if (line[pos] == ';' && for_cmd == 0) { // ?
+        if (line[pos] == ';' && for_cmd == 0) {
             cmd[nb_cmd][pos_cmd] = '\0';
             pos++;
             nb_cmd++;

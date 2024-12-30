@@ -81,7 +81,7 @@ int init_options(for_info * f) {
             f -> opt_type = 1;
             f -> file_type = f -> options[i+1][0];
             i++;
-        //Option -p    
+        //Option -p
         } else if (strcmp(f -> options[i], "-p") == 0) {
             if (i + 1 >= f -> opt_size) {
                 write(STDERR_FILENO, INVALID_OPT, strlen(INVALID_OPT));
