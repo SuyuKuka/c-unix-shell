@@ -10,6 +10,7 @@ void command_signal_handler (int sig) {
     }
 }
 
+//Vérifie que l'argument soit valide (un nombre) s'il y en a un et exit avec cet arguement sinon exit avec la dernière valeur de retour.
 int fsh_exit(cmd_info * cmd) {
     int flag = 1;
     size_t args_length = strlen(cmd -> args);
@@ -33,7 +34,7 @@ int fsh_exit(cmd_info * cmd) {
 }
 
 /*  Gère l'exécution des commandes. 
-    Appel aux commandes locales si nécessaires.
+    Appel aux commandes de fsh si nécessaire.
     Sinon crée un processus et gère les commandes externes.
     Renvoie :
     0 si tout fonctionne correctement, 
@@ -868,6 +869,7 @@ void make_prompt(char * prompt, int var) {
     free(return_value);
 }
 
+//Affiche le prompt, lit la ligne de commande et appelle handle_line.
 int display_prompt(int var) {
     char * line = NULL;
     char * prompt = calloc(BUFFER_SIZE, sizeof(char));
@@ -879,7 +881,7 @@ int display_prompt(int var) {
     }
 
     if (getcwd(prompt, BUFFER_SIZE) == NULL) {
-        perror("display_prompt");
+        perror("display_prompt getcwd");
         last_return = 1;
         goto cleanup;
     }
