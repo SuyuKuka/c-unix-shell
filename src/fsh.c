@@ -276,6 +276,38 @@ int execute_if(if_info *info) {
     }
     test_args[arg_index] = NULL; // NULL-terminer
 
+    for (int i = 0; test_args[i] != NULL; i++) {
+        if ((strcmp(test_args[i], ">") == 0 || strcmp(test_args[i], ">>") == 0 || strcmp(test_args[i], "<") == 0)) { //mettre les autres redirections 
+            if (test_args[i + 1] == NULL) {
+                fprintf(stderr, "Error file missing\n");
+                free(test_args);
+                return 1;
+            }
+
+            size_t length = strlen(test_args[i]) + strlen(test_args[i + 1]) + 2;
+            char *redirection_str = malloc(length);
+            if (!redirection_str) {
+                perror("malloc");
+                free(test_args);
+                return 1;
+            }
+            strcpy(redirection_str, test_args[i]);
+            strcat(redirection_str, " ");
+            strcat(redirection_str, test_args[i + 1]);
+
+            if (handle_redirection(redirection_str, 0) != 0) {
+                close_redirection();
+                free(redirection_str);
+                free(test_args);
+                return 1;
+            }
+            free(redirection_str);
+
+            test_args[i] = test_args[i + 2]; 
+            i--; 
+        }
+    }
+
     pid_t pid = fork();
     if (pid < 0) {
         perror("fork");
@@ -413,11 +445,6 @@ int handle_line(char * line) {
         }
         cmd -> name[i] = '\0';
 
-        if (handle_redirection(line_cmd, pos) != 0) {
-            result = 1;
-            goto error;
-        }
-
         if (cmds[all] -> is_pipeline) {
             if (line_cmd[pos] != '\0') {
                 memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
@@ -455,7 +482,12 @@ int handle_line(char * line) {
                 int test_result = execute_if(iinfo);
                 if (test_result == 0) {
                     if (iinfo -> cmd_true != NULL) {
+                        if (handle_redirection(iinfo -> cmd_true, 0) != 0) {
+                            result = 1;
+                            goto error;
+                        }
                         result = handle_line(iinfo -> cmd_true);
+                        close_redirection();
                         destroy_cmd_info(iinfo -> test);
                         iinfo -> test = NULL;
                         free(iinfo -> cmd_false);
@@ -468,7 +500,12 @@ int handle_line(char * line) {
                     }
                 } else {
                     if (iinfo -> cmd_false != NULL) {
+                        if (handle_redirection(iinfo -> cmd_false, 0) != 0) {
+                            result = 1;
+                            goto error;
+                        }
                         result = handle_line(iinfo -> cmd_false);
+                        close_redirection();
                         destroy_cmd_info(iinfo -> test);
                         iinfo -> test = NULL;
                         free(iinfo -> cmd_true);
@@ -481,11 +518,16 @@ int handle_line(char * line) {
                     }
                 } 
             } else if (strcmp(cmd -> name, "for") != 0) {
+                if (handle_redirection(line_cmd, pos) != 0) {
+                    result = 1;
+                    goto error;
+                }
                 if (line_cmd[pos] != '\0') {
                     memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
                     cmd_format(line_cmd, cmd);
                 }
                 result = call_function(cmd);
+                close_redirection();
             } else {
                 if (line_cmd[pos] != '\0') {
                     memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
@@ -500,13 +542,13 @@ int handle_line(char * line) {
             in_fd = STDIN_FILENO;
         }
 
-        close_redirection();
         if (cmd != NULL) {
             destroy_cmd_info(cmd);
             cmd = NULL;
         }
     }
 
+    close_redirection();
     
     if (in_fd != STDIN_FILENO) {
         close(in_fd);
@@ -688,7 +730,9 @@ int handle_redirection(char * line, size_t i) {
                 redirection_size--;
             }
 
-            while (line[redirection_size] != '\0') { line[redirection_size] = '\0'; redirection_size++; }
+            for (size_t j = redirection_size; j < pos + strlen(redirection_file + strlen(redirection_type) + 1); j++) {
+                line[j] = ' ';
+            }
             break;
         }
         pos++;
