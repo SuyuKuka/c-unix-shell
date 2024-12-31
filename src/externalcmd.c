@@ -175,11 +175,6 @@ int externalcmd(cmd_info *cmd) {
         waitpid(pid, &status, 0);
         //Vérification du status à la sortie du processus fils.
         if (WIFSIGNALED(status)) {
-            int signal = WTERMSIG(status);
-            //Si le processus fils a quitté par réception de SIGINT on retourne 2.
-            if (signal == 2) {
-                return signal;
-            }
             return 255;
         } else if (WIFEXITED(status)) {
             int exit_status = WEXITSTATUS(status);
