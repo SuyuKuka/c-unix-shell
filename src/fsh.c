@@ -6,7 +6,7 @@ void command_signal_handler (int sig) {
     if (sig == SIGTERM) {
         exit(255);
     } else if (sig == SIGINT) {
-        exit(2);
+        exit(255);
     }
 }
 
@@ -573,7 +573,7 @@ int handle_line(char * line) {
                     cmd_format(line_cmd, cmd);
                 }
                 result = call_function(cmd);
-                if (result == 2) {
+                if (result == 255) {
                     result = 255;
                     goto error;
                 }
