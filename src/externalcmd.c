@@ -16,6 +16,7 @@ void destroy_split(char ** arr, int * size) {
     free(arr);
 }
 
+//Sépare la commande, les options et les arguments dans un char **
 char ** split(cmd_info * cmd, int * size) {
     char ** cmd_split = NULL;
     size_t split_index = 0;
@@ -23,7 +24,8 @@ char ** split(cmd_info * cmd, int * size) {
     size_t space = 0;
     size_t opt_len = strlen(cmd -> opt);
     size_t args_len = strlen(cmd -> args);
- 
+    
+    //On compte le nombre d'options et d'arguments.
     if (strlen(cmd -> opt) > 0) {
         while(cmd -> opt[i] != '\0') {
             if(isspace(cmd -> opt[i]) != 0) {
@@ -53,7 +55,8 @@ char ** split(cmd_info * cmd, int * size) {
         *size = 0;
         goto error;
     }
-    
+
+    //Ajout du nom de la commande.
     cmd_split[split_index] = calloc(strlen(cmd -> name) + 1, sizeof(char));
     if (cmd_split[split_index] == NULL) {
         goto error;
@@ -61,7 +64,8 @@ char ** split(cmd_info * cmd, int * size) {
     memcpy(cmd_split[split_index], cmd -> name, strlen(cmd -> name) + 1);
     split_index++;
 
-    // //TODO : Déléguer à une fonction la copie.
+    //TODO : Déléguer à une fonction la copie.
+    // Séparation des options et des arguments dans le char **
     if (opt_len > 0) {
         char * tmp = NULL;
         size_t tmp_len = 0;
@@ -169,8 +173,10 @@ int externalcmd(cmd_info *cmd) {
     } else {
         int status;
         waitpid(pid, &status, 0);
+        //Vérification du status à la sortie du processus fils.
         if (WIFSIGNALED(status)) {
             int signal = WTERMSIG(status);
+            //Si le processus fils a quitté par réception de SIGINT on retourne 2.
             if (signal == 2) {
                 return signal;
             }
