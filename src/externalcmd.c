@@ -177,7 +177,7 @@ int externalcmd(cmd_info *cmd) {
         if (WIFSIGNALED(status)) {
             int signal = WTERMSIG(status);
             if (signal == 2) {
-                kill(getpid(), SIGUSR1);
+                raise(SIGUSR1);
             }
             return 255;
         } else if (WIFEXITED(status)) {
