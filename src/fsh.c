@@ -446,6 +446,10 @@ int handle_line(char * line) {
         cmd -> name[i] = '\0';
 
         if (cmds[all] -> is_pipeline) {
+            if (handle_redirection(line_cmd, pos) != 0) {
+                result = 1;
+                goto error;
+            }
             if (line_cmd[pos] != '\0') {
                 memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
                 cmd_format(line_cmd, cmd);
@@ -460,7 +464,6 @@ int handle_line(char * line) {
             }
 
             result = execute_pipeline(cmd, in_fd, &out_fd, cmds[all]);
-
             if (result != 0) {
                 fprintf(stderr, "Erreur d'exécution pour la commande : %s\n", cmds[all]->cmd_line);
                 break;
@@ -470,6 +473,7 @@ int handle_line(char * line) {
                 close(in_fd);
             }
             in_fd = out_fd;
+            close_redirection();
         } else {
             if (strcmp(cmd -> name, "") == 0) {
                 result = 0;
