@@ -70,7 +70,14 @@ int call_function (cmd_info * cmd) {
         } else {
             int status;
             waitpid(pid, &status, 0);
-            if (WIFEXITED(status)) {
+            if (WIFSIGNALED(status)) {
+                int signal = WTERMSIG(status);
+                if (signal == 10) {
+                    return -2;
+                } else {
+                    return 255;
+                }
+            } else if (WIFEXITED(status)) {
                 int exit_status = WEXITSTATUS(status);
                 if (exit_status != 0) {
                     return exit_status;
@@ -573,7 +580,7 @@ int handle_line(char * line) {
                     cmd_format(line_cmd, cmd);
                 }
                 result = call_function(cmd);
-                if (result == 255) {
+                if (result == -2) {
                     result = 255;
                     goto error;
                 }
