@@ -3,7 +3,7 @@
 int last_return = -1; 
 
 void command_signal_handler (int sig) {
-    if (sig == SIGTERM) {
+    if (sig == SIGTERM || sig == SIGINT) {
         exit(255);
     }
 }
@@ -31,8 +31,8 @@ int fsh_exit(cmd_info * cmd) {
 }
 
 /*  Gère l'exécution des commandes. 
-    Appel à fsh_exit si la commande exit est écrite.
-    Sinon crée un processus et gère les autres commandes.
+    Appel aux commandes locales si nécessaires.
+    Sinon crée un processus et gère les commandes nécessaires.
     Renvoie :
     0 si tout fonctionne correctement, 
     1 en cas d'erreur,
@@ -40,6 +40,12 @@ int fsh_exit(cmd_info * cmd) {
 int call_function (cmd_info * cmd) {
     if (strcmp("exit", cmd -> name) == 0) {
         fsh_exit(cmd);
+    } else if (strcmp("pwd", cmd -> name) == 0) {
+        return pwd(cmd);
+    } else if (strcmp(cmd -> name, "ftype") == 0) {
+        return ftype(cmd);
+    } else if (strcmp(cmd -> name, "cd") == 0) { 
+        return cd(cmd);
     } else {
         pid_t pid = fork();
         if (pid == -1) {
@@ -53,19 +59,11 @@ int call_function (cmd_info * cmd) {
                 perror("Commande SIGTERM.");
                 exit(1);
             }
-            if (strcmp("pwd", cmd -> name) == 0) {
-                exit(pwd(cmd));
-            } else if (strcmp(cmd -> name, "ftype") == 0) {
-                exit(ftype(cmd));
-            } else if (strcmp(cmd -> name, "cd") == 0) { 
-                exit(cd(cmd));
-            } else {
-                if (sigaction(SIGTERM, &sa, NULL) == -1) {
-                    perror("Commande SIGTERM.");
-                    exit(1);
-                }
-                exit(externalcmd(cmd));
+            if (sigaction(SIGINT, &sa, NULL) == -1) {
+                perror("Commande SIGINT.");
+                exit(1);
             }
+            exit(externalcmd(cmd));
         } else {
             int status;
             waitpid(pid, &status, 0);
@@ -661,7 +659,11 @@ int main() {
     ignore_term.sa_handler = SIG_IGN;
     sigemptyset(&ignore_term.sa_mask);
     if (sigaction(SIGTERM, &ignore_term, NULL) == -1) {
-        perror("ignore SIGTERM.");
+        perror("fsh SIGTERM.");
+        exit(1);
+    }
+    if (sigaction(SIGINT, &ignore_term, NULL) == -1) {
+        perror("fsh SIGINT.");
         exit(1);
     }
     return display_prompt(last_return);
