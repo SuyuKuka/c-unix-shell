@@ -169,7 +169,13 @@ int externalcmd(cmd_info *cmd) {
     } else {
         int status;
         waitpid(pid, &status, 0);
-        if (WIFEXITED(status)) {
+        if (WIFSIGNALED(status)) {
+            int signal = WTERMSIG(status);
+            if (signal == 2) {
+                return signal;
+            }
+            return 255;
+        } else if (WIFEXITED(status)) {
             int exit_status = WEXITSTATUS(status);
             if (exit_status != 0) {
                 return exit_status;
