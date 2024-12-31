@@ -3,8 +3,10 @@
 int last_return = -1; 
 
 void command_signal_handler (int sig) {
-    if (sig == SIGTERM || sig == SIGINT) {
+    if (sig == SIGTERM) {
         exit(255);
+    } else if (sig == SIGINT) {
+        exit(2);
     }
 }
 
@@ -367,6 +369,10 @@ int handle_line(char * line) {
                 cmd_format(line_cmd, cmd);
             }
             result = call_function(cmd);
+            if (result == 2) { 
+                result = 255;
+                goto error;
+            }
         } else {
             if (line_cmd[pos] != '\0') {
                 memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
