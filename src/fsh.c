@@ -572,6 +572,10 @@ int handle_line(char * line) {
                     cmd_format(line_cmd, cmd);
                 }
                 result = call_function(cmd);
+                if (result == 2) {
+                    result = 255;
+                    goto error;
+                }
                 close_redirection();
             } else {
                 if (line_cmd[pos] != '\0') {
