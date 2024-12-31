@@ -176,8 +176,10 @@ int externalcmd(cmd_info *cmd) {
         //Vérification du status à la sortie du processus fils.
         if (WIFSIGNALED(status)) {
             int signal = WTERMSIG(status);
+            // On renvoie 128 + 2 dans le cas de 2) SIGINT et 255 dans les autres cas.
+            // https://stackoverflow.com/questions/39269536/what-should-my-programs-exit-code-be-if-i-caught-a-signal
             if (signal == 2) {
-                raise(SIGUSR1);
+                return 130;
             }
             return 255;
         } else if (WIFEXITED(status)) {
