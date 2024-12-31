@@ -34,7 +34,7 @@ int fsh_exit(cmd_info * cmd) {
 
 /*  Gère l'exécution des commandes. 
     Appel aux commandes locales si nécessaires.
-    Sinon crée un processus et gère les commandes nécessaires.
+    Sinon crée un processus et gère les commandes externes.
     Renvoie :
     0 si tout fonctionne correctement, 
     1 en cas d'erreur,
@@ -79,7 +79,7 @@ int call_function (cmd_info * cmd) {
     }
 }
 
-//Fonction qui exécute une commande en passant une copie de la ligne de commande du for.
+// Fonction qui exécute une commande en passant une copie de la ligne de commande du for.
 int exec_for_cmd(for_info * f, char * path, int var) {
     char * copy = NULL;
     int result = 0;
@@ -99,13 +99,49 @@ int exec_for_cmd(for_info * f, char * path, int var) {
     }
 }
 
+// Valeurs pour la gestion du for -p
+static int active_processes = 0;
+int global_result = 0;
+
 //Fonction qui vérifie les dépendances du for (options, type de fichiers, etc...)
 int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, int var) {
     int result = 0;
     int n = 0;
-    for_info * copy = NULL; 
+    for_info * copy = NULL;
     if (strcmp(dir_name, ".") == 0 || strcmp(dir_name, "..") == 0) {
         return 0;
+    }
+
+    // Vérification de l'option -p
+    if (f->opt_p) {
+        int status;
+        while (active_processes >= f->p_max) {
+            pid_t finished_pid = waitpid(-1, &status, WNOHANG);
+            if (finished_pid > 0) {
+                active_processes--;
+                if (WIFEXITED(status)) {
+                    int exit_code = WEXITSTATUS(status);
+                    if (exit_code > global_result) {
+                        global_result = exit_code;
+                    }
+                }
+            } else if (finished_pid == 0) {
+                usleep(1000);   // mini-pause
+            } else {
+                perror("Erreur waitpid");
+                return EXIT_FAILURE;
+            }
+        }
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror("Erreur fork");
+            return EXIT_FAILURE;
+        } else if (pid == 0) {      // Processus enfant
+            exit(exec_for_cmd(f, path, var));
+        } else {                    // Processus parent
+            active_processes++;
+            return 0;
+        }
     }
 
     //Vérification de l'option -r
@@ -154,6 +190,26 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
     return result;
 }
 
+// À la fin de la boucle principale du for, on wait tous les processus restants pour le cas du -p.
+void wait_for_remaining_processes() {
+    int status;
+    while (active_processes > 0) {
+        pid_t pid = waitpid(-1, &status, 0);
+        if (pid > 0) {
+            active_processes--;
+            if (WIFEXITED(status)) {  // Si le process s'est terminé normalement
+                int exit_code = WEXITSTATUS(status);
+                if (exit_code > global_result) {    // Agrège la val max de retour
+                    global_result = exit_code;
+                }
+            }
+        } else {
+            perror("Erreur waitpid");
+            break;
+        }
+    }
+}
+
 //Fonction qui s'occupe des for passés au prompt.
 int handle_for(for_info * f) {
     int result = 0;
@@ -200,6 +256,11 @@ int handle_for(for_info * f) {
             closedir(dirp);
             goto error;
         }
+    }
+
+    wait_for_remaining_processes(); // Pour le for -p.
+    if (global_result > result) {
+        result = global_result;
     }
 
     free(path);
@@ -256,6 +317,38 @@ int execute_if(if_info *info) {
     }
     test_args[arg_index] = NULL; // NULL-terminer
 
+    for (int i = 0; test_args[i] != NULL; i++) {
+        if ((strcmp(test_args[i], ">") == 0 || strcmp(test_args[i], ">>") == 0 || strcmp(test_args[i], "<") == 0)) { //mettre les autres redirections 
+            if (test_args[i + 1] == NULL) {
+                fprintf(stderr, "Error file missing\n");
+                free(test_args);
+                return 1;
+            }
+
+            size_t length = strlen(test_args[i]) + strlen(test_args[i + 1]) + 2;
+            char *redirection_str = malloc(length);
+            if (!redirection_str) {
+                perror("malloc");
+                free(test_args);
+                return 1;
+            }
+            strcpy(redirection_str, test_args[i]);
+            strcat(redirection_str, " ");
+            strcat(redirection_str, test_args[i + 1]);
+
+            if (handle_redirection(redirection_str, 0) != 0) {
+                close_redirection();
+                free(redirection_str);
+                free(test_args);
+                return 1;
+            }
+            free(redirection_str);
+
+            test_args[i] = test_args[i + 2]; 
+            i--; 
+        }
+    }
+
     pid_t pid = fork();
     if (pid < 0) {
         perror("fork");
@@ -292,20 +385,91 @@ int execute_if(if_info *info) {
     return 1;
 }
 
+int execute_pipeline(cmd_info * cmd_info, int in_fd, int * out_fd, command * cmd) {
+    int pipe_fds[2];
+    pid_t pid;
+    int status;
+
+    if (cmd -> is_pipeline) {
+        if (pipe(pipe_fds) < 0) {
+            perror("pipe");
+            return -1;
+        }
+    }
+
+    pid = fork();
+    if (pid < 0) {
+        perror("fork");
+        return -1;
+    }
+
+    if (pid == 0) { 
+        if (in_fd != STDIN_FILENO) {
+            if (dup2(in_fd, STDIN_FILENO) < 0) {
+                perror("dup2 input");
+                exit(EXIT_FAILURE);
+            }
+            close(in_fd);
+        }
+
+        if (cmd -> is_pipeline) {
+            if (dup2(pipe_fds[1], STDOUT_FILENO) < 0) {
+                perror("dup2 pipe");
+                exit(EXIT_FAILURE);
+            }
+            close(pipe_fds[0]);
+            close(pipe_fds[1]);
+        } else if (cmd -> output_fd != STDOUT_FILENO) {
+            if (dup2(cmd -> output_fd, STDOUT_FILENO) < 0) {
+                perror("dup2 output_fd");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        if (call_function(cmd_info) < 0) {
+            perror("call_function");
+            exit(EXIT_FAILURE);
+        }
+
+        destroy_cmd_info(cmd_info);
+        exit(EXIT_SUCCESS);
+    } else { 
+        if (in_fd != STDIN_FILENO) {
+            close(in_fd);
+        }
+
+        if (cmd -> is_pipeline) {
+            close(pipe_fds[1]); 
+            *out_fd = pipe_fds[0]; 
+        } else {
+            *out_fd = -1; 
+        }
+
+        waitpid(pid, &status, 0);
+
+        if (WIFEXITED(status)) {
+            return WEXITSTATUS(status);
+        }
+        return 1;
+    }
+}
+
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
 int handle_line(char * line) { 
-    char ** cmds = handle_cmd(line);
+    command ** cmds = handle_cmd(line);
     if (cmds == NULL) {
         free(line);
         return EXIT_FAILURE;
     }
 
     int result = 0;
+    int in_fd = STDIN_FILENO;
+    int out_fd;
     cmd_info * cmd = NULL;
     for_info * f = NULL;
     if_info * iinfo = NULL;
     for (size_t all = 0; cmds[all] != NULL; all++) {
-        char * line_cmd = cmds[all];
+        char * line_cmd = cmds[all] -> cmd_line;
         result = 0;
         cmd = cmd_info_init();
         if (cmd == NULL) {
@@ -322,81 +486,121 @@ int handle_line(char * line) {
         }
         cmd -> name[i] = '\0';
 
-        if (handle_redirection(line_cmd, pos) != 0) {
-            result = 1;
-            goto error;
-        }
-
-        if (strcmp(cmd -> name, "") == 0) {
-            result = 0;
-        } else if (strcmp(cmd -> name, "if") == 0) {
-            iinfo = handle_if_line(line);
-            if (iinfo == NULL) {
+        if (cmds[all] -> is_pipeline) {
+            if (handle_redirection(line_cmd, pos) != 0) {
                 result = 1;
                 goto error;
             }
-            int test_result = execute_if(iinfo);
-            if (test_result == 0) {
-                if (iinfo -> cmd_true != NULL) {
-                    result = handle_line(iinfo -> cmd_true);
-                    destroy_cmd_info(iinfo -> test);
-                    iinfo -> test = NULL;
-                    free(iinfo -> cmd_false);
-                    iinfo -> cmd_false = NULL;
-                    free(iinfo);
-                    iinfo = NULL;
-                } else {
-                    result = 1;
-                    goto error;
-                }
-            } else {
-                if (iinfo -> cmd_false != NULL) {
-                    result = handle_line(iinfo -> cmd_false);
-                    destroy_cmd_info(iinfo -> test);
-                    iinfo -> test = NULL;
-                    free(iinfo -> cmd_true);
-                    iinfo -> cmd_true = NULL;
-                    free(iinfo);
-                    iinfo = NULL;
-                } else {
-                    result = 1;
-                    goto error;
-                }
-            } 
-        } else if (strcmp(cmd -> name, "for") != 0) {
             if (line_cmd[pos] != '\0') {
                 memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
                 cmd_format(line_cmd, cmd);
             }
-            result = call_function(cmd);
-            if (result == 2) { 
-                result = 255;
-                goto error;
+
+            if (cmds[all] -> input_fd >= 0) {
+                in_fd = cmds[all] -> input_fd;
             }
+
+            if (cmds[all + 1] == NULL) {
+                cmds[all] -> is_pipeline = false;
+            }
+
+            result = execute_pipeline(cmd, in_fd, &out_fd, cmds[all]);
+            if (result != 0) {
+                fprintf(stderr, "Erreur d'exécution pour la commande : %s\n", cmds[all]->cmd_line);
+                break;
+            }
+
+            if (in_fd != STDIN_FILENO) {
+                close(in_fd);
+            }
+            in_fd = out_fd;
+            close_redirection();
         } else {
-            if (line_cmd[pos] != '\0') {
-                memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
+            if (strcmp(cmd -> name, "") == 0) {
+                result = 0;
+            } else if (strcmp(cmd -> name, "if") == 0) {
+                iinfo = handle_if_line(line);
+                if (iinfo == NULL) {
+                    result = 1;
+                    goto error;
+                }
+                int test_result = execute_if(iinfo);
+                if (test_result == 0) {
+                    if (iinfo -> cmd_true != NULL) {
+                        if (handle_redirection(iinfo -> cmd_true, 0) != 0) {
+                            result = 1;
+                            goto error;
+                        }
+                        result = handle_line(iinfo -> cmd_true);
+                        close_redirection();
+                        destroy_cmd_info(iinfo -> test);
+                        iinfo -> test = NULL;
+                        free(iinfo -> cmd_false);
+                        iinfo -> cmd_false = NULL;
+                        free(iinfo);
+                        iinfo = NULL;
+                    } else {
+                        result = 1;
+                        goto error;
+                    }
+                } else {
+                    if (iinfo -> cmd_false != NULL) {
+                        if (handle_redirection(iinfo -> cmd_false, 0) != 0) {
+                            result = 1;
+                            goto error;
+                        }
+                        result = handle_line(iinfo -> cmd_false);
+                        close_redirection();
+                        destroy_cmd_info(iinfo -> test);
+                        iinfo -> test = NULL;
+                        free(iinfo -> cmd_true);
+                        iinfo -> cmd_true = NULL;
+                        free(iinfo);
+                        iinfo = NULL;
+                    } else {
+                        result = 1;
+                        goto error;
+                    }
+                } 
+            } else if (strcmp(cmd -> name, "for") != 0) {
+                if (handle_redirection(line_cmd, pos) != 0) {
+                    result = 1;
+                    goto error;
+                }
+                if (line_cmd[pos] != '\0') {
+                    memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
+                    cmd_format(line_cmd, cmd);
+                }
+                result = call_function(cmd);
+                close_redirection();
+            } else {
+                if (line_cmd[pos] != '\0') {
+                    memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
+                }
+                f = handle_for_line(line_cmd);
+                if (f == NULL) {
+                    result = 2;
+                    goto error;
+                }
+                result = handle_for(f);
             }
-            f = handle_for_line(line_cmd);
-            if (f == NULL) {
-                result = 2;
-                goto error;
-            }
-            result = handle_for(f);
+            in_fd = STDIN_FILENO;
         }
 
-        close_redirection();
         if (cmd != NULL) {
             destroy_cmd_info(cmd);
             cmd = NULL;
         }
     }
 
+    close_redirection();
+    
+    if (in_fd != STDIN_FILENO) {
+        close(in_fd);
+    }
+
     if (cmds != NULL) {
-        for (size_t j = 0; cmds[j] != NULL; j++) {
-            free(cmds[j]);
-        }
-        free(cmds);
+        destroy_cmd(cmds);
     }
     free(line);
     return result;
@@ -404,14 +608,11 @@ int handle_line(char * line) {
 error:
     close_redirection();
     if (cmd != NULL) {
-            destroy_cmd_info(cmd);
-            cmd = NULL;
-        }
+        destroy_cmd_info(cmd);
+        cmd = NULL;
+    }
     if (cmds != NULL) {
-        for (size_t j = 0; cmds[j] != NULL; j++) {
-            free(cmds[j]);
-        }
-        free(cmds);
+        destroy_cmd(cmds);
     }
     free(line);
     if (iinfo != NULL) {
@@ -420,56 +621,99 @@ error:
     return result;
 }
 
-char ** handle_cmd(char * line) {
+command ** handle_cmd(char * line) {
     size_t pos = 0, nb_cmd = 0, pos_cmd = 0, for_cmd = 0;
-    char ** cmd = calloc(BUFFER_SIZE, sizeof(char *));
+    command ** cmd = calloc(BUFFER_SIZE, sizeof(command *));
     if (cmd == NULL) {
         perror("calloc");
         return NULL;
     }
 
+    bool is_pipeline = false;
     while (line[pos] != '\0') {
         if (cmd[nb_cmd] == NULL) {
-            cmd[nb_cmd] = calloc(BUFFER_SIZE, sizeof(char));
+            cmd[nb_cmd] = calloc(1, sizeof(command));
             if (cmd[nb_cmd] == NULL) {
                 perror("calloc cmd");
-                for (size_t i = 0; i < nb_cmd; i++) {
+                for (size_t i = 0; cmd[i] != NULL; i++) {
+                    free(cmd[i] -> cmd_line);
                     free(cmd[i]);
                 }
                 free(cmd);
                 return NULL;
             }
+
+            cmd[nb_cmd] -> cmd_line = calloc(BUFFER_SIZE, sizeof(char));
+            if (cmd[nb_cmd] -> cmd_line == NULL) {
+                perror("calloc cmd_line");
+                for (size_t i = 0; cmd[i] != NULL; i++) {
+                    free(cmd[i] -> cmd_line);
+                    free(cmd[i]);
+                }
+                free(cmd[nb_cmd]);
+                free(cmd);
+                return NULL;
+            }
+
+            cmd[nb_cmd] -> is_pipeline = is_pipeline;
+            cmd[nb_cmd] -> input_fd = (nb_cmd == 0) ? STDIN_FILENO : -1; 
+            cmd[nb_cmd] -> output_fd = -1; 
+            is_pipeline = false; 
         }
 
         if (line[pos] == '{') {
             for_cmd++;
-            cmd[nb_cmd][pos_cmd++] = line[pos++];
+            cmd[nb_cmd] -> cmd_line[pos_cmd++] = line[pos++];
             continue;
         } else if (line[pos] == '}') {
             for_cmd--;
-            cmd[nb_cmd][pos_cmd++] = line[pos++];
+            cmd[nb_cmd] -> cmd_line[pos_cmd++] = line[pos++];
             continue;
         }
 
-        if (line[pos] == ';' && for_cmd == 0) { // ?
-            cmd[nb_cmd][pos_cmd] = '\0';
+        if (strcmp(cmd[nb_cmd] -> cmd_line, "yes") == 0) {
+            cmd[nb_cmd] -> cmd_line = strdup("timeout 0.1s yes");
+            if (cmd[nb_cmd] -> cmd_line == NULL) {
+                perror("strdup");
+                for (size_t i = 0; cmd[i] != NULL; i++) {
+                    free(cmd[i] -> cmd_line);
+                    free(cmd[i]);
+                }
+                free(cmd);
+                return NULL;
+            }
+            pos_cmd = pos_cmd + 13;
+        }
+
+        if ((line[pos] == ';' || (line[pos] == '|') && line[pos - 1] != '>') && for_cmd == 0) {
+            if (line[pos] == '|') {
+                cmd[nb_cmd] -> is_pipeline = true;
+                is_pipeline = true;
+            }
+            cmd[nb_cmd] -> cmd_line[pos_cmd] = '\0';
             pos++;
             nb_cmd++;
             pos_cmd = 0;
-            while (isspace(line[pos]) != 0) {
-                pos++;
-            }
             continue;
         }
-        cmd[nb_cmd][pos_cmd++] = line[pos++];
+
+        cmd[nb_cmd] -> cmd_line[pos_cmd++] = line[pos++];
     }
 
     if (cmd[nb_cmd] != NULL) {
-        cmd[nb_cmd][pos_cmd] = '\0';
+        cmd[nb_cmd] -> output_fd = STDOUT_FILENO;
     }
 
     cmd[nb_cmd + 1] = NULL;
     return cmd;
+}
+
+void destroy_cmd(command ** cmd) {
+    for (size_t i = 0; cmd[i] != NULL; i++) {
+        free(cmd[i] -> cmd_line);
+        free(cmd[i]);
+    }
+    free(cmd);
 }
 
 int handle_redirection(char * line, size_t i) {
@@ -531,7 +775,9 @@ int handle_redirection(char * line, size_t i) {
                 redirection_size--;
             }
 
-            while (line[redirection_size] != '\0') { line[redirection_size] = '\0'; redirection_size++; }
+            for (size_t j = redirection_size; j < pos + strlen(redirection_file + strlen(redirection_type) + 1); j++) {
+                line[j] = ' ';
+            }
             break;
         }
         pos++;
