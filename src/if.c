@@ -26,10 +26,12 @@ if_info * if_info_init() {
 void destroy_if_info(if_info *info) {
     if (info != NULL) {
         if (info -> test != NULL) {
+            printf("Fait destroy du info->test;\n");
             destroy_cmd_info(info -> test);
             info -> test = NULL;
         }
-        if (info -> cmd_true != NULL) {
+        if (info -> cmd_true != NULL) { // lui
+            printf("Fait free du info->cmd_true;\n");
             free(info -> cmd_true);
             info -> cmd_true = NULL;
         }

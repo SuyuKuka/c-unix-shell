@@ -527,14 +527,16 @@ int handle_line(char * line) {
                     result = 1;
                     goto error;
                 }
+                //printf("handle_line | pre execute, iinfo :%s\n", iinfo->test->name);
+                //printf("handle_line | pre execute, iinfo_true :%s\n", iinfo->cmd_true);
                 result = execute_if(iinfo);
                 printf("handle_line | contenu de iinfo :%s\n", iinfo->test->name);
-                printf("handle_line | contenu de iinfo_true :%s\n", iinfo->cmd_true);
-                // Libération de la mémoire de if_info après exécution
+                printf("handle_line | contenu de iinfo_true :%s\n", iinfo->cmd_true);   // pour pb du free de cmd_true, pointeur de line ?
+                /* Libération de la mémoire de if_info après exécution
                 printf("handle_line | appel de destroyifinfo\n");
                 destroy_if_info(iinfo);
                 printf("handle_line | appel du destroy fini\n");
-                iinfo = NULL;
+                iinfo = NULL; */
 
                 //return result; // Retourner le résultat de l'exécution du if
                 /*
@@ -607,7 +609,8 @@ int handle_line(char * line) {
     }
 
     if (iinfo != NULL) {
-        printf("handle_line | appel de destroyifinfo\n");
+        printf("vers fin du handle_line, clean iinfo\n");
+        printf("handle_line | appel de destroyifinfo\n");   //
         destroy_if_info(iinfo);
         printf("handle_line | appel du destroy fini\n");
         iinfo = NULL;
@@ -621,8 +624,10 @@ int handle_line(char * line) {
 
     if (cmds != NULL) {
         destroy_cmd(cmds);
+        cmds = NULL;
     }
     free(line);
+    //line = NULL;
     return result;
 
 error:
@@ -633,10 +638,13 @@ error:
     }
     if (cmds != NULL) {
         destroy_cmd(cmds);
+        cmds = NULL;
     }
     free(line);
+    //line = NULL;
     if (iinfo != NULL) {
         destroy_if_info(iinfo);
+        iinfo = NULL;
     }
     return result;
 }
