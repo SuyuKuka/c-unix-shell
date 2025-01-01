@@ -182,7 +182,7 @@ int externalcmd(cmd_info *cmd) {
     return 0;
 }
 
-int new_exec(cmd_info *cmd) {
+/*int new_exec(cmd_info *cmd) {
     pid_t pid = fork();
     switch(pid) {
         case -1:
@@ -209,5 +209,5 @@ int new_exec(cmd_info *cmd) {
             int result = wait_process();
             return result < 0 ? EXIT_FAILURE : result;
     }
-}
+} */
 
