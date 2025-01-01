@@ -371,28 +371,40 @@ int execute_if(if_info *info) {
         return 1;
     }
 
-    // Appelle externalcmd pour exécuter la condition
-    int test_result = externalcmd(info->test); // Exécute la condition via externalcmd (info->test->name ?)
+    int test_result = externalcmd(info->test); // Exécute la condition via externalcmd (info->test->name ?), cause pb ?
+    printf("execute_if | test et test_result :%s|%d\n", info->test->name, test_result);
     if (test_result == 0) { // if (externalcmd(info->test) == EXIT_SUCCESS) { return handle_line(info->cmd_true); }
-        // Condition réussie : exécuter cmd_true
+        // Condition réussie : exec cmd_true avec handle_line
         if (info->cmd_true != NULL) {
             printf("execute_if | contenu de cmd_true :%s\n", info->cmd_true);
+            return handle_line(info->cmd_true);
+            /*
             if (handle_line(info->cmd_true) != 0) {
                 fprintf(stderr, "Erreur lors de l'exécution de cmd_true.\n");
                 return 1;
             }
+            */
         }
     } else { // else if (info->cmd_false != NULL) { return handle_line(info->cmd_false); }
-        // Condition échouée : exécuter cmd_false s'il existe
+        // Condition échouée : exec cmd_false s'il existe avec handle_line
         if (info->cmd_false != NULL) {
-            if (handle_line(info->cmd_false) != 0) {
+            return handle_line(info->cmd_false);
+            /*
+             if (handle_line(info->cmd_false) != 0) {
                 fprintf(stderr, "Erreur lors de l'exécution de cmd_false.\n");
                 return 1;
             }
+            */
         }
     }
-    // retour échec ?
-    return 0;
+    return 0;   // retour échec ? pour histoires de val retour
+    /*
+    // Test réussi si le code de retour est 0
+    if (WIFEXITED(status)) {
+        return WEXITSTATUS(status);
+    }
+    return 1;
+    */
 }
 //
 
@@ -534,8 +546,16 @@ int handle_line(char * line) {
                 //printf("handle_line | pre execute, iinfo :%s\n", iinfo->test->name);
                 //printf("handle_line | pre execute, iinfo_true :%s\n", iinfo->cmd_true);
                 result = execute_if(iinfo);
-                printf("handle_line | contenu de iinfo :%s\n", iinfo->test->name);
+                //printf("handle_line | contenu de iinfo :%s\n", iinfo->test->name);
                 printf("handle_line | contenu de iinfo_true :%s\n", iinfo->cmd_true);   // pour pb du free de cmd_true, pointeur de line ?
+                if(iinfo->cmd_true != NULL) {
+                    iinfo->cmd_true = NULL;
+                }
+                if(iinfo->cmd_false != NULL) {
+                    iinfo->cmd_false = NULL;
+                }
+                printf("handle_line | contenu de iinfo_true post bled :%s\n", iinfo->cmd_true);   // pour pb du free de cmd_true, pointeur de line ?
+                //printf("handle_line | contenu de line :%s\n", line);
                 /* Libération de la mémoire de if_info après exécution
                 printf("handle_line | appel de destroyifinfo\n");
                 destroy_if_info(iinfo);
@@ -613,10 +633,10 @@ int handle_line(char * line) {
     }
 
     if (iinfo != NULL) {
-        printf("vers fin du handle_line, clean iinfo\n");
-        printf("handle_line | appel de destroyifinfo\n");   //
+        //printf("vers fin du handle_line, clean iinfo\n");
+        //printf("handle_line | appel de destroyifinfo\n");
         destroy_if_info(iinfo);
-        printf("handle_line | appel du destroy fini\n");
+        //printf("handle_line | appel du destroy fini\n");
         iinfo = NULL;
     }
 
