@@ -234,12 +234,18 @@ int handle_for(for_info * f) {
 }
 
 // Exec commande if. Return 0 si succès, 1 si échec.
+/* 
 int execute_if(if_info *info) {
     if (!info || !info -> test || !info -> test -> name) {
         fprintf(stderr, "Erreur : if_info mal formé.\n");
         return 1;
     }
-    
+    /*
+    char *original = strdup(info->test->name);
+    if(original == NULL) {
+        perror("strdup");
+        return 1;
+    }
     // Tableau d'arguments alloué dynamiquement
     char **test_args = malloc(sizeof(char *) * 10); // Taille initiale (agrandie si besoin)
     if (!test_args) {
@@ -249,6 +255,7 @@ int execute_if(if_info *info) {
     test_args[0] = "/usr/bin/test"; // commande test
     int arg_index = 1;
     char *name = info -> test -> name;
+    // printf("execute_if | contenu de la chaîne condition name :%s\n", name); //contenu bien entier de la condition
     int in_quote = 0; // Pour guillemets
     int start = 0;
     for (int i = 0; name[i] != '\0'; i++) {
@@ -259,7 +266,7 @@ int execute_if(if_info *info) {
         if (name[i] == ' ' && !in_quote) {
             name[i] = '\0';
             test_args[arg_index++] = &name[start];
-            //printf("execute_if | contenu de test_args[%d] :%s\n", arg_index, test_args[arg_index]);
+            // printf("execute_if | contenu de test_args[%d] :%s\n", arg_index, test_args[arg_index]);
             start = i + 1;
 
             if (arg_index % 10 == 0) { // Réallocation si nécessaire
@@ -275,6 +282,12 @@ int execute_if(if_info *info) {
         test_args[arg_index++] = &name[start];
     }
     test_args[arg_index] = NULL; // NULL-terminer
+    /*printf("execute_if | contenu de la chaîne condition name post testargs :%s\n", name); //contenu bien entier de la condition
+    printf("execute_if | contenu de original_name post test :%s\n", info->test->name); //contenu bien entier de la condition
+    printf("execute_if | contenu de test_args[0] :%s\n", test_args[0]);
+    printf("execute_if | contenu de test_args[1] :%s\n", test_args[1]);
+    printf("execute_if | contenu de test_args[2] :%s\n", test_args[2]);
+    printf("execute_if | contenu de test_args[3] :%s\n", test_args[3]);
 
     for (int i = 0; test_args[i] != NULL; i++) {
         if ((strcmp(test_args[i], ">") == 0 || strcmp(test_args[i], ">>") == 0 || strcmp(test_args[i], "<") == 0)) { //mettre les autres redirections 
@@ -341,8 +354,43 @@ int execute_if(if_info *info) {
     if (WIFEXITED(status)) {
         return WEXITSTATUS(status);
     }
+    //free(original);
     return 1;
 }
+*/
+
+
+//
+int execute_if(if_info *info) {
+    if (!info || !info->test || !info->test->name) {
+        fprintf(stderr, "Erreur : if_info mal formé.\n");
+        return 1;
+    }
+
+    // Appelle externalcmd pour exécuter la condition
+    int test_result = externalcmd(info->test); // Exécute la condition via externalcmd (info->test->name ?)
+    if (test_result == 0) {
+        // Condition réussie : exécuter cmd_true
+        if (info->cmd_true != NULL) {
+            printf("execute_if | contenu de cmd_true :%s\n", info->cmd_true);
+            if (handle_line(info->cmd_true) != 0) {
+                fprintf(stderr, "Erreur lors de l'exécution de cmd_true.\n");
+                return 1;
+            }
+        }
+    } else {
+        // Condition échouée : exécuter cmd_false s'il existe
+        if (info->cmd_false != NULL) {
+            if (handle_line(info->cmd_false) != 0) {
+                fprintf(stderr, "Erreur lors de l'exécution de cmd_false.\n");
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+//
 
 int execute_pipeline(cmd_info * cmd_info, int in_fd, int * out_fd, command * cmd) {
     int pipe_fds[2];
@@ -479,7 +527,17 @@ int handle_line(char * line) {
                     result = 1;
                     goto error;
                 }
-                int test_result = execute_if(iinfo);
+                result = execute_if(iinfo);
+                printf("handle_line | contenu de iinfo :%s\n", iinfo->test->name);
+                printf("handle_line | contenu de iinfo_true :%s\n", iinfo->cmd_true);
+                // Libération de la mémoire de if_info après exécution
+                printf("handle_line | appel de destroyifinfo\n");
+                destroy_if_info(iinfo);
+                printf("handle_line | appel du destroy fini\n");
+                iinfo = NULL;
+
+                //return result; // Retourner le résultat de l'exécution du if
+                /*
                 if (test_result == 0) {
                     if (iinfo -> cmd_true != NULL) {
                         if (handle_redirection(iinfo -> cmd_true, 0) != 0) {
@@ -516,7 +574,7 @@ int handle_line(char * line) {
                         result = 1;
                         goto error;
                     }
-                } 
+                } */
             } else if (strcmp(cmd -> name, "for") != 0) {
                 if (handle_redirection(line_cmd, pos) != 0) {
                     result = 1;
@@ -546,6 +604,13 @@ int handle_line(char * line) {
             destroy_cmd_info(cmd);
             cmd = NULL;
         }
+    }
+
+    if (iinfo != NULL) {
+        printf("handle_line | appel de destroyifinfo\n");
+        destroy_if_info(iinfo);
+        printf("handle_line | appel du destroy fini\n");
+        iinfo = NULL;
     }
 
     close_redirection();

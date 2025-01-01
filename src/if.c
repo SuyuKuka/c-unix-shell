@@ -198,13 +198,25 @@ if_info * handle_if_line(char *line) {
     while (isspace((unsigned char) * cursor)) cursor++;
     int start = cursor - line; // Position actuelle
     char * tmp = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
+    if (tmp == NULL) {
+        goto error;
+    }
+    info->cmd_true = malloc(strlen(tmp) + 1);
+    if (info->cmd_true == NULL) {
+        free(tmp);
+        goto error;
+    }
+    memcpy(info->cmd_true, tmp, strlen(tmp) + 1);
+    free(tmp);
+    cursor = line + start;
+    /*
     memmove(info -> cmd_true, tmp, strlen(tmp) + 1);
     free(tmp);
     if (info -> cmd_true == NULL) {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
         goto error;
     }
-    cursor = line + start; // Maj curseur après le bloc cmd_true
+    cursor = line + start; // Maj curseur après le bloc cmd_true */
 
     // 4. Vérification & extraction de cmd_false si "else" présent
     while (isspace((unsigned char) * cursor)) cursor++;
@@ -218,13 +230,27 @@ if_info * handle_if_line(char *line) {
 
         start = cursor - line;
         char * tmp = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
+        if (tmp == NULL) {
+            goto error;
+        }
+
+        info->cmd_false = malloc(strlen(tmp) + 1);
+        if (info->cmd_false == NULL) {
+            free(tmp);
+            goto error;
+        }
+        memcpy(info->cmd_false, tmp, strlen(tmp) + 1);
+        free(tmp);
+        cursor = line + start;
+
+        /*
         memmove(info -> cmd_false, tmp, strlen(tmp) + 1);
         free(tmp);
         if (info -> cmd_false == NULL) {
             write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
             goto error;
         }
-        cursor = line + start; // Maj curseur après le bloc cmd_false
+        cursor = line + start; // Maj curseur après le bloc cmd_false */
     }
     return info;
 
@@ -234,6 +260,9 @@ if_info * handle_if_line(char *line) {
         if (new_cmd -> name != NULL) free(new_cmd -> name);
         free(new_cmd);
     }
-    destroy_if_info(info);
+    if (info != NULL) {
+        destroy_if_info(info);  // Assurez-vous que destroy_if_info est robuste
+        info = NULL;  // Important pour éviter des problèmes en aval
+    }
     return NULL;
 }
