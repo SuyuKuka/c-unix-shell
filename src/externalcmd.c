@@ -167,10 +167,13 @@ int externalcmd(cmd_info *cmd) {
         destroy_split(cmd_split, size);
         free(size);
     } else {
+        printf("externalcmd | dans else à la fin\n");
         int status;
         waitpid(pid, &status, 0);
+        printf("externalcmd | valeur de WIFEXITED(status) :%d\n", WIFEXITED(status));
         if (WIFEXITED(status)) {
             int exit_status = WEXITSTATUS(status);
+            printf("externalcmd | valeur de exit_status :%d\n", exit_status);
             if (exit_status != 0) {
                 return exit_status;
             }
