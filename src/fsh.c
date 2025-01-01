@@ -361,6 +361,10 @@ int execute_if(if_info *info) {
 
 
 //
+/*
+if (exec(test_cmd) == EXIT_SUCCESS) return exec(cmd1);
+else if (has_else) return exec(cmd2);
+*/
 int execute_if(if_info *info) {
     if (!info || !info->test || !info->test->name) {
         fprintf(stderr, "Erreur : if_info mal formé.\n");
@@ -369,7 +373,7 @@ int execute_if(if_info *info) {
 
     // Appelle externalcmd pour exécuter la condition
     int test_result = externalcmd(info->test); // Exécute la condition via externalcmd (info->test->name ?)
-    if (test_result == 0) {
+    if (test_result == 0) { // if (externalcmd(info->test) == EXIT_SUCCESS) { return handle_line(info->cmd_true); }
         // Condition réussie : exécuter cmd_true
         if (info->cmd_true != NULL) {
             printf("execute_if | contenu de cmd_true :%s\n", info->cmd_true);
@@ -378,7 +382,7 @@ int execute_if(if_info *info) {
                 return 1;
             }
         }
-    } else {
+    } else { // else if (info->cmd_false != NULL) { return handle_line(info->cmd_false); }
         // Condition échouée : exécuter cmd_false s'il existe
         if (info->cmd_false != NULL) {
             if (handle_line(info->cmd_false) != 0) {
@@ -387,7 +391,7 @@ int execute_if(if_info *info) {
             }
         }
     }
-
+    // retour échec ?
     return 0;
 }
 //
