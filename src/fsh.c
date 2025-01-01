@@ -372,7 +372,7 @@ int execute_if(if_info *info) {
     }
 
     int test_result = externalcmd(info->test); // Exécute la condition via externalcmd (info->test->name ?), cause pb ?
-    printf("execute_if | test et test_result :%s|%d\n", info->test->name, test_result);
+    printf("execute_if | test|test_result :%s|%d\n", info->test->name, test_result);
     if (test_result == 0) { // if (externalcmd(info->test) == EXIT_SUCCESS) { return handle_line(info->cmd_true); }
         // Condition réussie : exec cmd_true avec handle_line
         if (info->cmd_true != NULL) {
