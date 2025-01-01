@@ -26,12 +26,11 @@ if_info * if_info_init() {
 void destroy_if_info(if_info *info) {
     if (info != NULL) {
         if (info -> test != NULL) {
-            printf("Fait destroy du info->test;\n");
+            //printf("destroy_if_info | clear info->test;\n");
             destroy_cmd_info(info -> test);
             info -> test = NULL;
         }
-        if (info -> cmd_true != NULL) { // lui
-            printf("Fait free du info->cmd_true;\n");
+        if (info -> cmd_true != NULL) {
             free(info -> cmd_true);
             info -> cmd_true = NULL;
         }
@@ -177,8 +176,7 @@ if_info * handle_if_line(char *line) {
         perror("strndup");
         goto error;
     }
-
-    condition = strip_brackets(condition);
+    condition = strip_brackets(condition); //
     cmd_info * new_cmd = malloc(sizeof(cmd_info));
     if (new_cmd == NULL) {
         perror("malloc");
