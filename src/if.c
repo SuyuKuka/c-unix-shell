@@ -176,7 +176,9 @@ if_info * handle_if_line(char *line) {
         perror("strndup");
         goto error;
     }
+    printf("handle_if | condition est :%s\n", condition);
     //condition = strip_brackets(condition); //
+    //printf("handle_if | condition post strip est :%s\n", condition);
 
     info->test = malloc(strlen(condition) + 1);
     if (info->cmd_true == NULL) {
@@ -219,7 +221,7 @@ if_info * handle_if_line(char *line) {
         free(tmp);
         goto error;
     }
-    memcpy(info->cmd_true, trim(tmp), strlen(tmp) + 1);
+    memcpy(info->cmd_true, tmp, strlen(tmp) + 1);
     printf("handle_if_line | contenu info->cmd_true :%s\n", info->cmd_true);
     free(tmp);
     cursor = line + start;

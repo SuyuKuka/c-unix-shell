@@ -377,8 +377,8 @@ int execute_if(if_info *info) {
         // Condition réussie : exec cmd_true avec handle_line
         if (info->cmd_true != NULL) {
             printf("execute_if | contenu de cmd_true :%s\n", info->cmd_true);
-            info->cmd_true = trim(info->cmd_true);
-            printf("execute_if | contenu post trim cmd_true :%s\n", info->cmd_true);
+            char *aupif = trim(info->cmd_true);
+            printf("execute_if | contenu post trim cmd_true :%s\n", aupif);
             char *copy_true = malloc(strlen(info->cmd_true) + 1);
             if (copy_true == NULL) {
                 return 1;
@@ -562,8 +562,8 @@ int handle_line(char * line) {
                 if(iinfo->test != NULL) {
                     iinfo->test = NULL;
                 }
-                printf("handle_line | contenu de iinfo :%s\n", iinfo->test);
-                printf("handle_line | contenu de iinfo_true :%s\n", iinfo->cmd_true);   // pour pb du free de cmd_true, pointeur de line ?
+                //printf("handle_line | contenu de iinfo :%s\n", iinfo->test);
+                //printf("handle_line | contenu de iinfo_true :%s\n", iinfo->cmd_true);   // pour pb du free de cmd_true, pointeur de line ?
                 /*if(iinfo->cmd_true != NULL) {
                     iinfo->cmd_true = NULL;
                 }

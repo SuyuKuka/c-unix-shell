@@ -3,7 +3,7 @@
 char *trim(char *str) {
     if (!str) return NULL;
     const char *start = str;
-    while (isspace((unsigned char)*start)) start++;
+    while (*start == ' ') start++;
     const char *end = start + strlen(start);
     while (end > start && isspace((unsigned char)*(end - 1))) end--;
     size_t len = end - start;
