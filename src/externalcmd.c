@@ -16,15 +16,22 @@ void destroy_split(char ** arr, int * size) {
     free(arr);
 }
 
+//Sépare la commande, les options et les arguments dans un char **
 char ** split(cmd_info * cmd, int * size) {
     char ** cmd_split = NULL;
     size_t split_index = 0;
     int i = 0;
     size_t space = 0;
-    size_t opt_len = strlen(cmd -> opt);
-    size_t args_len = strlen(cmd -> args);
- 
-    if (strlen(cmd -> opt) > 0) {
+    size_t opt_len = 0;
+    size_t args_len = 0;
+    if (cmd -> opt != NULL) {
+        opt_len = strlen(cmd -> opt);
+    }
+    if (cmd -> args != NULL) {
+        args_len = strlen(cmd -> args);
+    }    
+    //On compte le nombre d'options et d'arguments.
+    if (opt_len > 0) {
         while(cmd -> opt[i] != '\0') {
             if(isspace(cmd -> opt[i]) != 0) {
                 space++;
@@ -35,7 +42,7 @@ char ** split(cmd_info * cmd, int * size) {
         i = 0;
     }
 
-    if (strlen(cmd -> args) > 0) {
+    if (args_len > 0) {
         while(cmd -> args[i] != '\0') {
             if(isspace(cmd -> args[i]) != 0) {
                 space++;
@@ -53,7 +60,8 @@ char ** split(cmd_info * cmd, int * size) {
         *size = 0;
         goto error;
     }
-    
+
+    //Ajout du nom de la commande.
     cmd_split[split_index] = calloc(strlen(cmd -> name) + 1, sizeof(char));
     if (cmd_split[split_index] == NULL) {
         goto error;
@@ -61,11 +69,12 @@ char ** split(cmd_info * cmd, int * size) {
     memcpy(cmd_split[split_index], cmd -> name, strlen(cmd -> name) + 1);
     split_index++;
 
-    // //TODO : Déléguer à une fonction la copie.
+    //TODO : Déléguer à une fonction la copie.
+    // Séparation des options et des arguments dans le char **
     if (opt_len > 0) {
         char * tmp = NULL;
         size_t tmp_len = 0;
-        tmp = calloc(strlen(cmd -> opt) + 1, sizeof(char));
+        tmp = calloc(opt_len + 1, sizeof(char));
         if (tmp == NULL) {goto error;}
         while(cmd -> opt[i] != '\0') {
             if (isspace(cmd -> opt[i]) == 0) {
@@ -100,7 +109,7 @@ char ** split(cmd_info * cmd, int * size) {
     if (args_len > 0) {
         char * tmp = NULL;
         size_t tmp_len = 0;
-        tmp = calloc(strlen(cmd -> args) + 1, sizeof(char));
+        tmp = calloc(args_len + 1, sizeof(char));
         if (tmp == NULL) {goto error;}
         while(cmd -> args[i] != '\0') {
             if (isspace(cmd -> args[i]) == 0) {
@@ -169,7 +178,16 @@ int externalcmd(cmd_info *cmd) {
     } else {
         int status;
         waitpid(pid, &status, 0);
-        if (WIFEXITED(status)) {
+        //Vérification du status à la sortie du processus fils.
+        if (WIFSIGNALED(status)) {
+            int signal = WTERMSIG(status);
+            // On renvoie 128 + 2 dans le cas de 2) SIGINT et 255 dans les autres cas.
+            // https://stackoverflow.com/questions/39269536/what-should-my-programs-exit-code-be-if-i-caught-a-signal
+            if (signal == 2) {
+                return 130;
+            }
+            return 255;
+        } else if (WIFEXITED(status)) {
             int exit_status = WEXITSTATUS(status);
             if (exit_status != 0) {
                 return exit_status;
