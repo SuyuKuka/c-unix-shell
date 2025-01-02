@@ -163,7 +163,7 @@ char ** split(cmd_info * cmd, int * size) {
 }
 
 int externalcmd(cmd_info *cmd) {
-    printf("externalcmd | cmd_info :%s\n", cmd->name);
+    //printf("externalcmd | cmd_info :%s\n", cmd->name);
     pid_t pid = fork();
     if (pid == -1) {
         write(STDERR_FILENO, "Error with fork: problem creating a child process\n", 45);
@@ -180,7 +180,7 @@ int externalcmd(cmd_info *cmd) {
             free(size);
             _exit(1);
         }
-        printf("externalcmd | log pour cmd_split[0] :%s\n", cmd_split[0]);
+        //printf("externalcmd | log pour cmd_split[0] :%s\n", cmd_split[0]);
         if (execvp(cmd_split[0], cmd_split) == -1) {
             perror("execvp");
             destroy_split(cmd_split, size);
@@ -197,7 +197,7 @@ int externalcmd(cmd_info *cmd) {
         //printf("externalcmd | valeur de WIFEXITED(status) :%d\n", WIFEXITED(status));
         if (WIFEXITED(status)) {
             int exit_status = WEXITSTATUS(status);
-            printf("externalcmd | valeur de exit_status :%d\n", exit_status);
+            //printf("externalcmd | valeur de exit_status :%d\n", exit_status);
             if (exit_status != 0) {
                 return exit_status;
             }

@@ -15,6 +15,11 @@ typedef struct if_info {
 if_info *if_info_init();
 void destroy_if_info(if_info *info);
 
+char *strip_brackets(char *);
+char *custom_strndup(const char *, size_t);
+char *extract_block(const char *, int *);
+int evaluate_test(char *);
+
 if_info *handle_if_line(char *line);
 int execute_if(if_info *info);
 

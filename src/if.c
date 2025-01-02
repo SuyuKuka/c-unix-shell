@@ -137,6 +137,83 @@ char *extract_block(const char *line, int *start) {
     return block;
 }
 
+int evaluate_test(char *condition) {
+    if(condition == NULL) return 1;
+        // Tableau d'arguments alloué dynamiquement
+        char **test_args = malloc(sizeof(char *) * 10); // Taille initiale (agrandie si besoin)
+        if (!test_args) {
+            perror("malloc");
+            return 1;
+        }
+        test_args[0] = "/usr/bin/test"; // commande test
+        int arg_index = 1;
+        char *name = condition;
+        //printf("if, evaluate | contenu de la chaîne condition name :%s\n", name); //contenu bien entier de la condition
+        int in_quote = 0;
+        int start = 0;
+        for (int i = 0; name[i] != '\0'; i++) {
+            if (name[i] == '"' || name[i] == '\'') {
+                in_quote = !in_quote; // bascule hors/dans guillemets
+                continue;
+            }
+            if (name[i] == ' ' && !in_quote) {
+                name[i] = '\0';
+                test_args[arg_index++] = &name[start];
+                // printf("execute_if | contenu de test_args[%d] :%s\n", arg_index, test_args[arg_index]);
+                start = i + 1;
+
+                if (arg_index % 10 == 0) { // Réallocation si nécessaire
+                    test_args = realloc(test_args, sizeof(char *) * (arg_index + 10));
+                    if (test_args == NULL) {
+                        perror("realloc");
+                        return 1;
+                    }
+                }
+            }
+        }
+        if (name[start] != '\0') {
+            test_args[arg_index++] = &name[start];
+        }
+        test_args[arg_index] = NULL; // NULL-terminer
+        //printf("if, evaluate | contenu de la chaîne condition name post testargs :%s\n", name); //contenu bien entier de la condition
+        //printf("if, evaluate | contenu de test_args[0] :%s\n", test_args[0]);
+        //printf("if, evaluate | contenu de test_args[1] :%s\n", test_args[1]);
+        //printf("if, evaluate | contenu de test_args[2] :%s\n", test_args[2]);
+        //printf("if, evaluate | contenu de test_args[3] :%s\n", test_args[3]);
+        pid_t pid = fork();
+        if (pid < 0) {
+            perror("fork");
+            free(test_args);
+            return 1;
+        } else if (pid == 0) {
+            int null = open("/dev/null", O_WRONLY);
+            if (null == 1) {
+                perror("Erreur : /dev/null");
+                exit(1);
+            }
+            if (dup2(null, STDERR_FILENO) == -1) {
+                perror("dup2");
+                exit(1);
+            }
+            close(null);
+            
+            execvp(test_args[0], test_args);
+            perror("execvp");
+            exit(1);
+        }
+        int status;
+        if (waitpid(pid, &status, 0) < 0) {
+            perror("waitpid");
+            free(test_args);
+            return 1;
+        }
+        free(test_args);
+        if (WIFEXITED(status)) {    // Test réussi si le code de retour est 0
+            return WEXITSTATUS(status);
+        }
+        return 1;
+}
+
 
 /*
 * Analyse une ligne de commande, vérifie si il s'agit d'un if. 
@@ -176,9 +253,6 @@ if_info * handle_if_line(char *line) {
         perror("strndup");
         goto error;
     }
-    printf("handle_if | condition est :%s\n", condition);
-    //condition = strip_brackets(condition); //
-    //printf("handle_if | condition post strip est :%s\n", condition);
 
     info->test = malloc(strlen(condition) + 1);
     if (info->cmd_true == NULL) {
@@ -186,44 +260,31 @@ if_info * handle_if_line(char *line) {
         goto error;
     }
     memcpy(info->test, condition, strlen(condition) + 1);
-    /*
-    cmd_info * new_cmd = malloc(sizeof(cmd_info));
-    if (new_cmd == NULL) {
-        perror("malloc");
-        goto error;
-    }
-    char * new_name = malloc(strlen(condition) + 1);  // Alloue mémoire pour copie
-    if (new_name == NULL) {
-        perror("malloc");
-        goto error;
-    }
-    memcpy(new_name, condition, strlen(condition) + 1);  // Copie de la condition
-    new_cmd -> name = new_name;  // chaîne stockée dans 'name'
-    new_cmd -> opt = NULL;
-    new_cmd -> args = NULL;
-    info -> test = new_cmd; // Transforme la condition en commande
-    */
-    
     free(condition);
 
     // 3. Extraction de cmd_true (jusqu'à '}')
     while (isspace((unsigned char) * cursor)) cursor++;
     int start = cursor - line; // Position actuelle
     char * tmp = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
-    printf("handle_if_line | tmp de cmd_true :%s|\n", tmp);
+    //printf("handle_if_line | tmp de cmd_true :%s|\n", tmp);
     if (tmp == NULL) {
         goto error;
     }
     tmp = trim(tmp);
-    printf("handle_if_line post trim| tmp de cmd_true :%s|\n", tmp);
+    //printf("handle_if_line post trim| tmp de cmd_true :%s|\n", tmp);
     info->cmd_true = malloc(strlen(tmp) + 1);
     if (info->cmd_true == NULL) {
+        write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
         free(tmp);
         goto error;
     }
     memcpy(info->cmd_true, tmp, strlen(tmp) + 1);
-    printf("handle_if_line | contenu info->cmd_true :%s\n", info->cmd_true);
+    //printf("handle_if_line | contenu info->cmd_true :%s\n", info->cmd_true);
     free(tmp);
+    if (info->cmd_true == NULL) {
+        write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
+        goto error;
+    }
     cursor = line + start;
     /*
     memmove(info -> cmd_true, tmp, strlen(tmp) + 1);
@@ -252,11 +313,16 @@ if_info * handle_if_line(char *line) {
 
         info->cmd_false = malloc(strlen(tmp) + 1);
         if (info->cmd_false == NULL) {
+            write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
             free(tmp);
             goto error;
         }
         memcpy(info->cmd_false, tmp, strlen(tmp) + 1);
         free(tmp);
+        if (info->cmd_false == NULL) {
+            write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
+            goto error;
+        }
         cursor = line + start;
 
         /*
@@ -272,11 +338,6 @@ if_info * handle_if_line(char *line) {
 
     error:
     if (condition != NULL) free(condition);
-    /*
-    if (new_cmd != NULL) {
-        if (new_cmd -> name != NULL) free(new_cmd -> name);
-        free(new_cmd);
-    } */
     if (info != NULL) {
         destroy_if_info(info);  // Assurez-vous que destroy_if_info est robuste
         info = NULL;  // Important pour éviter des problèmes en aval
