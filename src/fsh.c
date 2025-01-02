@@ -370,14 +370,21 @@ int execute_if(if_info *info) {
         fprintf(stderr, "Erreur : if_info mal formé.\n");
         return 1;
     }
-    printf("execute_if avant | test :%s\n", info->test);
+    //printf("execute_if avant | test :%s\n", info->test);
     int test_result = handle_line(info->test); // Exécute la condition via externalcmd (info->test->name ?), cause pb ?
-    printf("execute_if | test|test_result :%s|%d\n", info->test, test_result);
+    //printf("execute_if | test|test_result :%s|%d\n", info->test, test_result);
     if (test_result == 0) { // if (externalcmd(info->test) == EXIT_SUCCESS) { return handle_line(info->cmd_true); }
         // Condition réussie : exec cmd_true avec handle_line
         if (info->cmd_true != NULL) {
             printf("execute_if | contenu de cmd_true :%s\n", info->cmd_true);
-            return handle_line(info->cmd_true);
+            info->cmd_true = trim(info->cmd_true);
+            printf("execute_if | contenu post trim cmd_true :%s\n", info->cmd_true);
+            char *copy_true = malloc(strlen(info->cmd_true) + 1);
+            if (copy_true == NULL) {
+                return 1;
+            }
+            memcpy(copy_true, info->cmd_true, strlen(info->cmd_true) + 1);
+            return handle_line(copy_true);
             /*
             if (handle_line(info->cmd_true) != 0) {
                 fprintf(stderr, "Erreur lors de l'exécution de cmd_true.\n");
@@ -388,7 +395,13 @@ int execute_if(if_info *info) {
     } else { // else if (info->cmd_false != NULL) { return handle_line(info->cmd_false); }
         // Condition échouée : exec cmd_false s'il existe avec handle_line
         if (info->cmd_false != NULL) {
-            return handle_line(info->cmd_false);
+            char *copy_false = malloc(strlen(info->cmd_false) + 1);
+            if (copy_false == NULL) {
+                return 1;
+            }
+            memcpy(copy_false, info->cmd_false, strlen(info->cmd_false) + 1);
+            return handle_line(copy_false);
+            //return handle_line(info->cmd_false);
             /*
              if (handle_line(info->cmd_false) != 0) {
                 fprintf(stderr, "Erreur lors de l'exécution de cmd_false.\n");
