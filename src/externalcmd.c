@@ -139,7 +139,7 @@ char ** split(cmd_info * cmd, int * size) {
     return NULL;
 }
 
-int externalcmd(cmd_info *cmd) { 
+int externalcmd(cmd_info *cmd) {
     printf("externalcmd | cmd_info :%s\n", cmd->name);
     pid_t pid = fork();
     if (pid == -1) {
@@ -157,7 +157,7 @@ int externalcmd(cmd_info *cmd) {
             free(size);
             _exit(1);
         }
-        printf("externalcmd | log pour cmd_split[0] : %s\n", cmd_split[0]);
+        printf("externalcmd | log pour cmd_split[0] :%s\n", cmd_split[0]);
         if (execvp(cmd_split[0], cmd_split) == -1) {
             perror("execvp");
             destroy_split(cmd_split, size);

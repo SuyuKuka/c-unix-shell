@@ -208,15 +208,19 @@ if_info * handle_if_line(char *line) {
     while (isspace((unsigned char) * cursor)) cursor++;
     int start = cursor - line; // Position actuelle
     char * tmp = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
+    printf("handle_if_line | tmp de cmd_true :%s|\n", tmp);
     if (tmp == NULL) {
         goto error;
     }
+    tmp = trim(tmp);
+    printf("handle_if_line post trim| tmp de cmd_true :%s|\n", tmp);
     info->cmd_true = malloc(strlen(tmp) + 1);
     if (info->cmd_true == NULL) {
         free(tmp);
         goto error;
     }
-    memcpy(info->cmd_true, tmp, strlen(tmp) + 1);
+    memcpy(info->cmd_true, trim(tmp), strlen(tmp) + 1);
+    printf("handle_if_line | contenu info->cmd_true :%s\n", info->cmd_true);
     free(tmp);
     cursor = line + start;
     /*
