@@ -27,7 +27,7 @@ void destroy_if_info(if_info *info) {
     if (info != NULL) {
         if (info -> test != NULL) {
             //printf("destroy_if_info | clear info->test;\n");
-            destroy_cmd_info(info -> test);
+            free(info -> test);
             info -> test = NULL;
         }
         if (info -> cmd_true != NULL) {
@@ -176,7 +176,15 @@ if_info * handle_if_line(char *line) {
         perror("strndup");
         goto error;
     }
-    condition = strip_brackets(condition); //
+    //condition = strip_brackets(condition); //
+
+    info->test = malloc(strlen(condition) + 1);
+    if (info->cmd_true == NULL) {
+        free(condition);
+        goto error;
+    }
+    memcpy(info->test, condition, strlen(condition) + 1);
+    /*
     cmd_info * new_cmd = malloc(sizeof(cmd_info));
     if (new_cmd == NULL) {
         perror("malloc");
@@ -192,6 +200,8 @@ if_info * handle_if_line(char *line) {
     new_cmd -> opt = NULL;
     new_cmd -> args = NULL;
     info -> test = new_cmd; // Transforme la condition en commande
+    */
+    
     free(condition);
 
     // 3. Extraction de cmd_true (jusqu'à '}')
@@ -256,10 +266,11 @@ if_info * handle_if_line(char *line) {
 
     error:
     if (condition != NULL) free(condition);
+    /*
     if (new_cmd != NULL) {
         if (new_cmd -> name != NULL) free(new_cmd -> name);
         free(new_cmd);
-    }
+    } */
     if (info != NULL) {
         destroy_if_info(info);  // Assurez-vous que destroy_if_info est robuste
         info = NULL;  // Important pour éviter des problèmes en aval

@@ -366,13 +366,13 @@ if (exec(test_cmd) == EXIT_SUCCESS) return exec(cmd1);
 else if (has_else) return exec(cmd2);
 */
 int execute_if(if_info *info) {
-    if (!info || !info->test || !info->test->name) {
+    if (!info || !info->test) {
         fprintf(stderr, "Erreur : if_info mal formé.\n");
         return 1;
     }
-
-    int test_result = externalcmd(info->test); // Exécute la condition via externalcmd (info->test->name ?), cause pb ?
-    printf("execute_if | test|test_result :%s|%d\n", info->test->name, test_result);
+    printf("execute_if avant | test :%s\n", info->test);
+    int test_result = handle_line(info->test); // Exécute la condition via externalcmd (info->test->name ?), cause pb ?
+    printf("execute_if | test|test_result :%s|%d\n", info->test, test_result);
     if (test_result == 0) { // if (externalcmd(info->test) == EXIT_SUCCESS) { return handle_line(info->cmd_true); }
         // Condition réussie : exec cmd_true avec handle_line
         if (info->cmd_true != NULL) {
@@ -546,15 +546,18 @@ int handle_line(char * line) {
                 //printf("handle_line | pre execute, iinfo :%s\n", iinfo->test->name);
                 //printf("handle_line | pre execute, iinfo_true :%s\n", iinfo->cmd_true);
                 result = execute_if(iinfo);
-                //printf("handle_line | contenu de iinfo :%s\n", iinfo->test->name);
+                if(iinfo->test != NULL) {
+                    iinfo->test = NULL;
+                }
+                printf("handle_line | contenu de iinfo :%s\n", iinfo->test);
                 printf("handle_line | contenu de iinfo_true :%s\n", iinfo->cmd_true);   // pour pb du free de cmd_true, pointeur de line ?
-                if(iinfo->cmd_true != NULL) {
+                /*if(iinfo->cmd_true != NULL) {
                     iinfo->cmd_true = NULL;
                 }
                 if(iinfo->cmd_false != NULL) {
                     iinfo->cmd_false = NULL;
-                }
-                printf("handle_line | contenu de iinfo_true post bled :%s\n", iinfo->cmd_true);   // pour pb du free de cmd_true, pointeur de line ?
+                }*/
+                //printf("handle_line | contenu de iinfo_true post bled :%s\n", iinfo->cmd_true);   // pour pb du free de cmd_true, pointeur de line ?
                 //printf("handle_line | contenu de line :%s\n", line);
                 /* Libération de la mémoire de if_info après exécution
                 printf("handle_line | appel de destroyifinfo\n");

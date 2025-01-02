@@ -7,7 +7,7 @@
 #define SYNTAX_ERR "If invalide.\n"
 
 typedef struct if_info {
-    cmd_info *test;         // Commande TEST; voir histoire de test pipeline
+    char *test;         // Commande TEST; voir histoire de test pipeline
     char *cmd_true;     // Commande CMD ou CMD_1
     char *cmd_false;    // Commande CMD_2 (si 'else')
 } if_info;
