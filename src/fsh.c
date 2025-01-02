@@ -233,145 +233,14 @@ int handle_for(for_info * f) {
     return EXIT_FAILURE;
 }
 
-// Exec commande if. Return 0 si succès, 1 si échec.
-/* 
-int execute_if(if_info *info) {
-    if (!info || !info -> test || !info -> test -> name) {
-        fprintf(stderr, "Erreur : if_info mal formé.\n");
-        return 1;
-    }
-    /*
-    char *original = strdup(info->test->name);
-    if(original == NULL) {
-        perror("strdup");
-        return 1;
-    }
-    // Tableau d'arguments alloué dynamiquement
-    char **test_args = malloc(sizeof(char *) * 10); // Taille initiale (agrandie si besoin)
-    if (!test_args) {
-        perror("malloc");
-        return 1;
-    }
-    test_args[0] = "/usr/bin/test"; // commande test
-    int arg_index = 1;
-    char *name = info -> test -> name;
-    // printf("execute_if | contenu de la chaîne condition name :%s\n", name); //contenu bien entier de la condition
-    int in_quote = 0; // Pour guillemets
-    int start = 0;
-    for (int i = 0; name[i] != '\0'; i++) {
-        if (name[i] == '"' || name[i] == '\'') {
-            in_quote = !in_quote; // Bascule dans ou hors des guillemets
-            continue;
-        }
-        if (name[i] == ' ' && !in_quote) {
-            name[i] = '\0';
-            test_args[arg_index++] = &name[start];
-            // printf("execute_if | contenu de test_args[%d] :%s\n", arg_index, test_args[arg_index]);
-            start = i + 1;
-
-            if (arg_index % 10 == 0) { // Réallocation si nécessaire
-                test_args = realloc(test_args, sizeof(char *) * (arg_index + 10));
-                if (!test_args) {
-                    perror("realloc");
-                    return 1;
-                }
-            }
-        }
-    }
-    if (name[start] != '\0') {
-        test_args[arg_index++] = &name[start];
-    }
-    test_args[arg_index] = NULL; // NULL-terminer
-    /*printf("execute_if | contenu de la chaîne condition name post testargs :%s\n", name); //contenu bien entier de la condition
-    printf("execute_if | contenu de original_name post test :%s\n", info->test->name); //contenu bien entier de la condition
-    printf("execute_if | contenu de test_args[0] :%s\n", test_args[0]);
-    printf("execute_if | contenu de test_args[1] :%s\n", test_args[1]);
-    printf("execute_if | contenu de test_args[2] :%s\n", test_args[2]);
-    printf("execute_if | contenu de test_args[3] :%s\n", test_args[3]);
-
-    for (int i = 0; test_args[i] != NULL; i++) {
-        if ((strcmp(test_args[i], ">") == 0 || strcmp(test_args[i], ">>") == 0 || strcmp(test_args[i], "<") == 0)) { //mettre les autres redirections 
-            if (test_args[i + 1] == NULL) {
-                fprintf(stderr, "Error file missing\n");
-                free(test_args);
-                return 1;
-            }
-
-            size_t length = strlen(test_args[i]) + strlen(test_args[i + 1]) + 2;
-            char *redirection_str = malloc(length);
-            if (!redirection_str) {
-                perror("malloc");
-                free(test_args);
-                return 1;
-            }
-            strcpy(redirection_str, test_args[i]);
-            strcat(redirection_str, " ");
-            strcat(redirection_str, test_args[i + 1]);
-
-            if (handle_redirection(redirection_str, 0) != 0) {
-                close_redirection();
-                free(redirection_str);
-                free(test_args);
-                return 1;
-            }
-            free(redirection_str);
-
-            test_args[i] = test_args[i + 2]; 
-            i--; 
-        }
-    }
-
-    pid_t pid = fork();
-    if (pid < 0) {
-        perror("fork");
-        free(test_args);
-        return 1;
-    } else if (pid == 0) {
-        int null = open("/dev/null", O_WRONLY);
-        if (null == 1) {
-            perror("Erreur : /dev/null");
-            exit(1);
-        }
-        if (dup2(null, STDERR_FILENO) == -1) {
-            perror("dup2");
-            exit(1);
-        }
-        close(null);
-        
-        execvp(test_args[0], test_args);
-        perror("execvp");
-        exit(1);
-    }
-    int status;
-    if (waitpid(pid, &status, 0) < 0) {
-        perror("waitpid");
-        free(test_args);
-        return 1;
-    }
-    free(test_args);
-    
-    // Test réussi si le code de retour est 0
-    if (WIFEXITED(status)) {
-        return WEXITSTATUS(status);
-    }
-    //free(original);
-    return 1;
-}
-*/
-
-
-//
-/*
-if (exec(test_cmd) == EXIT_SUCCESS) return exec(cmd1);
-else if (has_else) return exec(cmd2);
-*/
-int execute_if(if_info *info) {
+// base nouvel execute_if
+/*int execute_if(if_info *info) {
     if (!info || !info->test) {
         fprintf(stderr, "Erreur : if_info mal formé.\n");
         return 1;
     }
-    //printf("execute_if avant | test :%s\n", info->test);
-    int test_result = handle_line(info->test); // Exécute la condition via externalcmd (info->test->name ?), cause pb ?
+    printf("execute_if | test recu :%s\n", info->test);
+    int test_result = handle_line(info->test); // Exécute la condition via externalcmd, cause pb ?
     //printf("execute_if | test|test_result :%s|%d\n", info->test, test_result);
     if (test_result == 0) { // if (externalcmd(info->test) == EXIT_SUCCESS) { return handle_line(info->cmd_true); }
         // Condition réussie : exec cmd_true avec handle_line
@@ -390,7 +259,7 @@ int execute_if(if_info *info) {
                 fprintf(stderr, "Erreur lors de l'exécution de cmd_true.\n");
                 return 1;
             }
-            */
+            
         }
     } else { // else if (info->cmd_false != NULL) { return handle_line(info->cmd_false); }
         // Condition échouée : exec cmd_false s'il existe avec handle_line
@@ -407,19 +276,75 @@ int execute_if(if_info *info) {
                 fprintf(stderr, "Erreur lors de l'exécution de cmd_false.\n");
                 return 1;
             }
-            */
+            
         }
     }
     return 0;   // retour échec ? pour histoires de val retour
-    /*
-    // Test réussi si le code de retour est 0
-    if (WIFEXITED(status)) {
-        return WEXITSTATUS(status);
-    }
-    return 1;
-    */
-}
+} */
 //
+
+int execute_if(if_info *info) {
+    if (!info || !info->test) {
+        fprintf(stderr, "Erreur : if_info mal formé.\n");
+        return 1;
+    }
+    if(info->test[0] == '[') {  // Si crochets, ancienne logique d'évaluation
+        char *strip_test = strip_brackets(info->test);  // free(info->test suite à cela ?)
+        if (strip_test == NULL) {
+            fprintf(stderr, "Erreur : strip_brackets a échoué.\n"); //
+            return 1;
+        }
+        //printf("execute_if | condition après strip_brackets :%s\n", strip_test);
+        int test_result = evaluate_test(strip_test);
+        free(strip_test);
+        if(test_result == 0) {
+            if (info->cmd_true != NULL) {
+                //printf("execute_if | exécution de cmd_true : %s\n", info->cmd_true);
+                char *copy_true = malloc(strlen(info->cmd_true) + 1);
+                if (copy_true == NULL) {
+                    return 1;
+                }
+                memcpy(copy_true, info->cmd_true, strlen(info->cmd_true) + 1);
+                return handle_line(copy_true);
+            }
+        } else {
+            if (info->cmd_false != NULL) { // si pas de cmd, il y a quand même espace donc va dans le bloc, pb ?
+                //printf("execute_if | exécution de cmd_false : %s\n", info->cmd_false);
+                char *copy_false = malloc(strlen(info->cmd_false) + 1);
+                if (copy_false == NULL) {
+                    return 1;
+                }
+                memcpy(copy_false, info->cmd_false, strlen(info->cmd_false) + 1);
+                return handle_line(copy_false);
+            }
+        }
+        return test_result;
+    }
+    // Aucun crochets, logique classique
+    int test_result = handle_line(info->test);
+    if (test_result == 0) {
+        if (info->cmd_true != NULL) {
+            //printf("execute_if | exécution de cmd_true : %s\n", info->cmd_true);
+            char *copy_true = malloc(strlen(info->cmd_true) + 1);
+            if (copy_true == NULL) {
+                return 1;
+            }
+            memcpy(copy_true, info->cmd_true, strlen(info->cmd_true) + 1);
+            return handle_line(copy_true);
+        }
+    } else {
+        if (info->cmd_false != NULL) {  // même que cas avec crochets ?
+            //printf("execute_if | exécution de cmd_false : %s\n", info->cmd_false);
+            char *copy_false = malloc(strlen(info->cmd_false) + 1);
+            if (copy_false == NULL) {
+                return 1;
+            }
+            memcpy(copy_false, info->cmd_false, strlen(info->cmd_false) + 1);
+            return handle_line(copy_false);
+        }
+    }
+    return 0;
+}
 
 int execute_pipeline(cmd_info * cmd_info, int in_fd, int * out_fd, command * cmd) {
     int pipe_fds[2];
