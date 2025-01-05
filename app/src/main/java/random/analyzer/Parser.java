@@ -13,14 +13,13 @@ public class Parser {   // final ? Pourrait être commune à logiciel1 et logici
 
     /* Lit le fichier 'filePath' puis renvoie son contenu sous la forme d'un String. */
     public static String parse(String filePath) throws SecurityException, FileNotFoundException, IOException {
-        StringBuilder stringBuilder = new StringBuilder();
-        try(BufferedReader reader = new BufferedReader(
-            new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8))) {
+        StringBuilder builder = new StringBuilder();
+        try(BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8))) {
             int c;
             while ((c = reader.read()) != -1) {
-                stringBuilder.append(String.valueOf((char) c));
+                builder.append(String.valueOf((char) c));
             }
         }
-        return stringBuilder.toString();
+        return builder.toString();
     }
 }
