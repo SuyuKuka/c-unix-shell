@@ -6,7 +6,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -27,6 +26,7 @@ public class Analyzer {
         run();
     }
 
+
     // Méthode principale qui run le logiciel 1.
     private void run() {
         final Set<String> allInputFiles = new LinkedHashSet<>(inputFiles);
@@ -34,7 +34,7 @@ public class Analyzer {
         // Création puis démarrage des threads
         final List<Thread> threadsList = new ArrayList<>();
         for (final String inputFile : allInputFiles) {
-            Thread t = new Thread(() -> parseFile(inputFile), inputFile);
+            Thread t = new Thread(() -> fileParser(inputFile), inputFile);
             threadsList.add(t);
             t.start();
         }
@@ -53,22 +53,22 @@ public class Analyzer {
         }
     }
 
-    // Parse le fichier 'inputFile' puis crée son fichier csv.
-    private void parseFile(String inputFile) {
-        try {
-            // Vérification des contrats
+    /* 
+    * Parse le fichier 'inputFile' puis crée son fichier csv.
+    * Cheminement : fichier.txt input -> String -> Map -> fichier.txt output
+    */
+    private void fileParser(String inputFile) {
+        try {   // Vérification des contrats
             verifyInputFileExists(inputFile);   // Étape 1
             System.out.println("Etape 1 faite...");
+
             final String outputFile = changeFileExtensionToCSV(inputFile);  // Étape 2
             System.out.println("Etape 2 faite...");
-            /* 
-                Cheminement : fichier.txt input -> String -> Map -> fichier.txt output
-            */
+           
             final String content = Parser.parse(inputFile);     // Étape 3, fichier.txt input -> String
             System.out.println("Etape 3 faite...");
 
             final Map<Character, MutableInt> charCountMap = mapStringContent(content);      // Étape 4 : String -> HashMap
-            
             // Comptage des caractères & Gestion des n-grammes
             Map<String, Integer> localNGramMap = new ConcurrentHashMap<>();
             String[] lines = content.split("\n");
@@ -77,10 +77,7 @@ public class Analyzer {
                 if (line.trim().length() >= 2) addNGram(2, line, localNGramMap); // Bigrammes
                 if (line.trim().length() >= 3) addNGram(3, line, localNGramMap); // Trigrammes
             }
-
-            // Fusionner les résultats des n-grammes localement calculés dans la map globale
-            localNGramMap.forEach((key, value) -> nGramMap.merge(key, value, Integer::sum));
-
+            localNGramMap.forEach((key, value) -> nGramMap.merge(key, value, Integer::sum));    // Fusionne les résultats des n-grammes localement calculés dans la map globale
 
             System.out.println("Etape 4 faite, j'appelle fromMapToCSV !");
             fromMapToCSV(charCountMap, outputFile);      // Étape finale, HashMap -> fichier.txt output (csv)
@@ -90,6 +87,7 @@ public class Analyzer {
             System.err.println("Une erreur est survenue lors de l'écriture/lecture du fichier. " + e.getClass().getName() + " : " + e.getMessage());
         }
     }
+
 
     // Renvoie une FileNotFoundException si le path vers le fichier inputFile ne trouve rien.
     private void verifyInputFileExists(String inputFile) throws FileNotFoundException {
@@ -113,25 +111,6 @@ public class Analyzer {
         return map;
     }
 
-    // Création du fichier 'outputFile' (format .csv) à partir de la map donnée.
-    private void fromMapToCSV(Map<Character, MutableInt> map, String outputFile) throws SecurityException, IOException {
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFile), StandardCharsets.UTF_8))) {
-            final long totalOccurences = map.values().stream().mapToInt(MutableInt::get).sum();
-            writer.write("caractère;nb_occurence;fréquence\n");
-
-            for (final Map.Entry<Character, MutableInt> entry : map.entrySet()) {
-                // caractère
-                final String key = String.valueOf(entry.getKey()).replace("\n","\\n").replace("\t", "\\t"); // empêche l'échappement des caractères spéciaux, retour à la ligne et tabulation
-                // nb_occurence
-                final long occurences = entry.getValue().get();
-                // fréquence
-                double frequency = (double) occurences / totalOccurences * 100;
-
-                writer.write(key + ";" + occurences + ";" + String.format("%.2f", frequency) + "%\n");
-            }
-        }
-    }
-
     // Renvoie le path d'un fichier en ayant changé son extension en csv.
     private static String changeFileExtensionToCSV(String filePath) {
         final int dotIndex = filePath.lastIndexOf('.');
@@ -139,6 +118,36 @@ public class Analyzer {
             return filePath + ".csv";
         }
         return filePath.substring(0, dotIndex) + ".csv";
+    }
+
+
+    // Création du fichier 'outputFile' (format .csv) à partir de la map donnée.
+    private void fromMapToCSV(Map<Character, MutableInt> map, String outputFile) throws SecurityException, IOException {
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFile), StandardCharsets.UTF_8))) {
+            final long totalOccurences = map.values().stream().mapToInt(MutableInt::get).sum();
+            writer.write("caractère;nb_occurence;fréquence\n");
+
+            // Trier les entrées par nb_occurence décroissant, puis par caractère (lexicographiquement) en cas d'égalité
+            map.entrySet().stream().sorted((e1, e2) -> {
+                int countComparison = Integer.compare(e2.getValue().get(), e1.getValue().get()); // Compare par nb_occurences
+                return countComparison != 0 ? countComparison : e1.getKey().compareTo(e2.getKey()); // Ensuite compare lexicographiquement
+            }).forEach(entry -> {
+                try {
+                    // caractère
+                    final String key = String.valueOf(entry.getKey()).replace("\n", "\\n").replace("\t", "\\t"); // Éviter échappement des caractères spéciaux
+                    // nb_occurence
+                    final long occurences = entry.getValue().get();
+                    // fréquence
+                    double frequency = (double) occurences / totalOccurences * 100;
+
+                    writer.write(key + ";" + occurences + ";" + String.format("%.2f", frequency) + "%\n");
+                } catch (IOException e) {
+                    System.err.println("Une erreur est survenue lors de l'écriture d'un fichier CSV : " + e.getMessage());
+                }
+            });
+        }  catch (SecurityException | IOException e) {
+            System.err.println("Une erreur est survenue lors du passage au format CSV. " + e.getClass().getName() + " : " + e.getMessage());
+        }
     }
 
 
@@ -152,46 +161,49 @@ public class Analyzer {
             
             // Trie les n-grammes par longueur de key (puis ordre d'insertion si longueur égales)
             nGramMap.entrySet().stream().sorted((e1, e2) -> {
-                    int lengthComparison = Integer.compare(e1.getKey().length(), e2.getKey().length());
-                    return lengthComparison != 0 ? lengthComparison : e1.getKey().compareTo(e2.getKey());
-                })
-                .forEach(entry -> {
-                    try {
-                        writer.write(entry.getKey() + ";" + entry.getValue() + "\n");
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                });
-            
+                int lengthComparison = Integer.compare(e1.getKey().length(), e2.getKey().length()); // Compare par longueur de n-gramme
+                if (lengthComparison != 0) { return lengthComparison; }
+                int countComparison = Integer.compare(e2.getValue(), e1.getValue());    // Compare par nb_occurrence décroissant
+                if (countComparison != 0) { return countComparison; }
+                // Compare par ordre lexicographique
+                return e1.getKey().compareTo(e2.getKey());
+            }).forEach(entry -> {
+                try {
+                    writer.write(entry.getKey() + ";" + entry.getValue() + "\n");
+                } catch (IOException e) {
+                    System.err.println("Une erreur est survenue lors de l'écriture des n-grammes dans un fichier CSV : " + e.getMessage());
+                }
+            });
             System.out.println("Exportation des n-grammes réussie dans " + outputFile);
-        } catch (IOException e) {
-            // Sauvegarder dans un fichier temporaire, non nécessaire ?
+        } catch (IOException e) {   // Sauvegarder dans un fichier temporaire, non nécessaire ?
             String tempFile = ".\\ressources.\\ngrams_temp_" + System.currentTimeMillis() + ".csv";
             try (BufferedWriter tempWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tempFile), StandardCharsets.UTF_8))) {
                 tempWriter.write("n-gramme;nb_occurrence\n");
-                nGramMap.entrySet().stream()
-                    .sorted((e1, e2) -> {
-                        int lengthComparison = Integer.compare(e1.getKey().length(), e2.getKey().length());
-                        return lengthComparison != 0 ? lengthComparison : e1.getKey().compareTo(e2.getKey());
-                    })
-                    .forEach(entry -> {
+                
+                nGramMap.entrySet().stream().sorted((e1, e2) -> {
+                    int lengthComparison = Integer.compare(e1.getKey().length(), e2.getKey().length());
+                    if (lengthComparison != 0) { return lengthComparison; }
+                    int countComparison = Integer.compare(e2.getValue(), e1.getValue());
+                    if (countComparison != 0) { return countComparison; }
+                    return e1.getKey().compareTo(e2.getKey());
+                    }).forEach(entry -> {
                         try {
                             tempWriter.write(entry.getKey() + ";" + entry.getValue() + "\n");
                         } catch (IOException tempEx) {
-                            throw new UncheckedIOException(tempEx);
+                            System.out.println("Erreur critique : une erreur est survenue lors de la création du fichier temporaire. " + tempEx.getMessage());
                         }
                     });
                 System.err.println("Une erreur est survenue lors de l'écriture du fichier CSV principal. Les résultats ont été sauvegardés dans un fichier temporaire : " + tempFile);
             } catch (IOException tempEx) {
                 System.err.println("Erreur critique : impossibilité de sauvegarder les résultats dans un fichier temporaire. " + tempEx.getMessage());
             }
-            throw e; // Rethrow l'exception pour signaler l'échec
+            throw e; // Rethrow l'exception pour signaler l'échec, causerait pb par rapport au sujet ?
         }
     }
 
     // Gestion des n-grammes dans la ligne puis fusion pour parallélisme
     private void addNGram(int n, String line, Map<String, Integer> map) {
-        if (line.length() < n) return; // Ne ien faire si la ligne est trop courte pour le n-gramme
+        if (line.length() < n) return; // Ne rien faire si la ligne est trop courte pour le n-gramme
         for (int i = 0; i <= line.length() - n; i++) {
             String nGram = line.substring(i, i + n);
             map.merge(nGram, 1, Integer::sum);
