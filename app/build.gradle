@@ -35,9 +35,22 @@ java {
 application {
     // Define the main class for the application.
     mainClass = 'random.analyzer.App'
+    applicationDefaultJvmArgs = []
 }
 
 tasks.named('test') {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
+}
+
+run {
+    workingDir = rootProject.projectDir
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDir 'ressources'
+        }
+    }
 }
