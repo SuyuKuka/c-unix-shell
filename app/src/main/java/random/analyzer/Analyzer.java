@@ -66,7 +66,7 @@ public class Analyzer {
             System.out.println("Etape 2 faite...");
            
             final String content = Parser.parse(inputFile);     // Étape 3, fichier.txt input -> String
-            System.out.println("Etape 3 faite...");
+            System.out.println("Etape 3 faite..."); // Ajouter print du string post-parse pour vérifier l'état du texte ?
 
             final Map<Character, MutableInt> charCountMap = mapStringContent(content);      // Étape 4 : String -> HashMap
             // Comptage des caractères & Gestion des n-grammes
@@ -119,6 +119,7 @@ public class Analyzer {
         }
         return filePath.substring(0, dotIndex) + ".csv";
     }
+
 
 
     // Création du fichier 'outputFile' (format .csv) à partir de la map donnée.

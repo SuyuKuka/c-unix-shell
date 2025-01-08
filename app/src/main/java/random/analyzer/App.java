@@ -11,10 +11,11 @@ public class App {
 
         inputFiles.addAll(Arrays.asList(args)); // Si pas de switch pour présence d'options, pour tout mettre (args donnés au main)
         //inputFiles.add(".\\ressources\\poésie.txt");
-        inputFiles.add(".\\ressources\\corpus2.txt");
+        inputFiles.add(".\\ressources\\alphabet.txt");
+        inputFiles.add(".\\ressources\\test.txt");
 
-        System.out.println("Lancement de l'analyseur de corpus.");
+        System.out.println("(Logiciel 1) Lancement de l'analyseur de corpus.");
         new Analyzer(inputFiles);   // Run : Input -> ... -> Output
-        System.out.println("Au revoir !");
+        System.out.println("(Fin du Logiciel 1) Au revoir !");
     }
 }
