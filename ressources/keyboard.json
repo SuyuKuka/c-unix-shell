@@ -1,78 +1,85 @@
 {
-    "keyboard": {
-      "layout_name": "AZERTY",
-      "rows": [
-        {
-        "row_index": 0,
-        "keys": [
-            { "key": "²", "position": [0, 0], "normal": "²", "shift": null, "altgr": null, "finger": "Pinky_Left" },
-            { "key": "&", "position": [0, 1], "normal": "&", "shift": "1", "altgr": null, "finger": "Pinky_Left" },
-            { "key": "é", "position": [0, 2], "normal": "é", "shift": "2", "altgr": "~", "finger": "Ring_Left" },
-            { "key": "\"", "position": [0, 3], "normal": "\"", "shift": "3", "altgr": "#", "finger": "Middle_Left" },
-            { "key": "'", "position": [0, 4], "normal": "'", "shift": "4", "altgr": "{", "finger": "Index_Left" },
-            { "key": "(", "position": [0, 5], "normal": "(", "shift": "5", "altgr": "[", "finger": "Index_Left" },
-            { "key": "-", "position": [0, 6], "normal": "-", "shift": "6", "altgr": "|", "finger": "Index_Right" },
-            { "key": "è", "position": [0, 7], "normal": "è", "shift": "7", "altgr": "`", "finger": "Index_Right" },
-            { "key": "_", "position": [0, 8], "normal": "_", "shift": "8", "altgr": "\\", "finger": "Middle_Right" },
-            { "key": "ç", "position": [0, 9], "normal": "ç", "shift": "9", "altgr": "^", "finger": "Ring_Right" },
-            { "key": "à", "position": [0, 10], "normal": "à", "shift": "0", "altgr": "@", "finger": "Pinky_Right" },
-            { "key": ")", "position": [0, 11], "normal": ")", "shift": "°", "altgr": "]", "finger": "Pinky_Right" },
-            { "key": "=", "position": [0, 12], "normal": "à", "shift": "+", "altgr": "}", "finger": "Pinky_Right" }
-        ]
-        },
-        {
-          "row_index": 1,
-          "keys": [
-            { "key": "a", "position": [1, 0], "normal": "a", "shift": "A", "finger": "Pinky_Left" },
-            { "key": "z", "position": [1, 1], "normal": "z", "shift": "Z", "finger": "Ring_Left" },
-            { "key": "e", "position": [1, 2], "normal": "e", "shift": "E", "finger": "Middle_Left" },
-            { "key": "r", "position": [1, 3], "normal": "r", "shift": "R", "finger": "Index_Left" },
-            { "key": "t", "position": [1, 4], "normal": "t", "shift": "T", "finger": "Index_Left" },
-            { "key": "y", "position": [1, 5], "normal": "y", "shift": "Y", "finger": "Index_Right" },
-            { "key": "u", "position": [1, 6], "normal": "u", "shift": "U", "finger": "Index_Right" },
-            { "key": "i", "position": [1, 7], "normal": "i", "shift": "I", "finger": "Middle_Right" },
-            { "key": "o", "position": [1, 8], "normal": "o", "shift": "O", "finger": "Ring_Right" },
-            { "key": "p", "position": [1, 9], "normal": "p", "shift": "P", "finger": "Pinky_Right" },
-            { "key": "^", "position": [1, 10], "normal": "^", "shift": "¨", "finger": "Pinky_Right" },
-            { "key": "$", "position": [1, 11], "normal": "$", "shift": "£", "altgr": "¤" , "finger": "Pinky_Right" }
-          ]
-        },
-        {
-          "row_index": 2,
-          "keys": [
-            { "key": "maj", "position": [2, 0], "normal": "maj", "shift": "maj", "finger": "Pinky_Left" },
-            { "key": "q", "position": [2, 1], "normal": "q", "shift": "Q", "finger": "Pinky_Left" },
-            { "key": "s", "position": [2, 2], "normal": "s", "shift": "S", "finger": "Ring_Left" },
-            { "key": "d", "position": [2, 3], "normal": "d", "shift": "D", "finger": "Middle_Left" },
-            { "key": "f", "position": [2, 4], "normal": "f", "shift": "F", "finger": "Index_Left" },
-            { "key": "g", "position": [2, 5], "normal": "g", "shift": "G", "finger": "Index_Left" },
-            { "key": "h", "position": [2, 6], "normal": "h", "shift": "H", "finger": "Index_Right" },
-            { "key": "j", "position": [2, 7], "normal": "j", "shift": "J", "finger": "Index_Right" },
-            { "key": "k", "position": [2, 8], "normal": "k", "shift": "K", "finger": "Middle_Right" },
-            { "key": "l", "position": [2, 9], "normal": "l", "shift": "L", "finger": "Ring_Right" },
-            { "key": "m", "position": [2, 10], "normal": "m", "shift": "M", "finger": "Pinky_Right" },
-            { "key": "ù", "position": [2, 11], "normal": "ù", "shift": "%", "finger": "Pinky_Right" },
-            { "key": "*", "position": [2, 12], "normal": "*", "shift": "µ", "finger": "Pinky_Right" }
-          ]
-        },
-        {
-          "row_index": 3,
-          "keys": [
-            { "key": "shift", "position": [3, 0], "normal": "shift", "shift": "shift", "finger": "Pinky_Left" },
-            { "key": "<", "position": [3, 1], "normal": "<", "shift": ">", "finger": "Pinky_Left" },
-            { "key": "w", "position": [3, 2], "normal": "w", "shift": "W", "finger": "Pinky_Left" },
-            { "key": "x", "position": [3, 3], "normal": "x", "shift": "X", "finger": "Ring_Left" },
-            { "key": "c", "position": [3, 4], "normal": "c", "shift": "C", "finger": "Middle_Left" },
-            { "key": "v", "position": [3, 5], "normal": "v", "shift": "V", "finger": "Index_Left" },
-            { "key": "b", "position": [3, 6], "normal": "b", "shift": "B", "finger": "Index_Left" },
-            { "key": "n", "position": [3, 7], "normal": "n", "shift": "N", "finger": "Index_Right" },
-            { "key": ",", "position": [3, 8], "normal": ",", "shift": "?", "finger": "Index_Right" },
-            { "key": ";", "position": [3, 9], "normal": ";", "shift": ".", "finger": "Middle_Right" },
-            { "key": ":", "position": [3, 10], "normal": ":", "shift": "/", "finger": "Ring_Right" },
-            { "key": "!", "position": [3, 11], "normal": "!", "shift": "§", "finger": "Pinky_Right" }
-          ]
-        }
+  "keyboard": {
+    "layout_name": "AZERTY",
+    "rows": [
+      {
+      "row_index": 0,
+      "keys": [
+          { "key": "²", "position": [0, 0], "normal": "²", "shift": null, "altgr": null, "finger": "Pinky_Left" },
+          { "key": "&", "position": [0, 1], "normal": "&", "shift": "1", "altgr": null, "finger": "Pinky_Left" },
+          { "key": "é", "position": [0, 2], "normal": "é", "shift": "2", "altgr": "~", "finger": "Ring_Left" },
+          { "key": "\"", "position": [0, 3], "normal": "\"", "shift": "3", "altgr": "#", "finger": "Middle_Left" },
+          { "key": "'", "position": [0, 4], "normal": "'", "shift": "4", "altgr": "{", "finger": "Index_Left" },
+          { "key": "(", "position": [0, 5], "normal": "(", "shift": "5", "altgr": "[", "finger": "Index_Left" },
+          { "key": "-", "position": [0, 6], "normal": "-", "shift": "6", "altgr": "|", "finger": "Index_Right" },
+          { "key": "è", "position": [0, 7], "normal": "è", "shift": "7", "altgr": "`", "finger": "Index_Right" },
+          { "key": "_", "position": [0, 8], "normal": "_", "shift": "8", "altgr": "\\", "finger": "Middle_Right" },
+          { "key": "ç", "position": [0, 9], "normal": "ç", "shift": "9", "altgr": "^", "finger": "Ring_Right" },
+          { "key": "à", "position": [0, 10], "normal": "à", "shift": "0", "altgr": "@", "finger": "Pinky_Right" },
+          { "key": ")", "position": [0, 11], "normal": ")", "shift": "°", "altgr": "]", "finger": "Pinky_Right" },
+          { "key": "=", "position": [0, 12], "normal": "=", "shift": "+", "altgr": "}", "finger": "Pinky_Right" }
       ]
-    }
+      },
+      {
+        "row_index": 1,
+        "keys": [
+          { "key": "a", "position": [1, 0], "normal": "a", "shift": "A", "finger": "Pinky_Left" },
+          { "key": "z", "position": [1, 1], "normal": "z", "shift": "Z", "finger": "Ring_Left" },
+          { "key": "e", "position": [1, 2], "normal": "e", "shift": "E", "finger": "Middle_Left" },
+          { "key": "r", "position": [1, 3], "normal": "r", "shift": "R", "finger": "Index_Left" },
+          { "key": "t", "position": [1, 4], "normal": "t", "shift": "T", "finger": "Index_Left" },
+          { "key": "y", "position": [1, 5], "normal": "y", "shift": "Y", "finger": "Index_Right" },
+          { "key": "u", "position": [1, 6], "normal": "u", "shift": "U", "finger": "Index_Right" },
+          { "key": "i", "position": [1, 7], "normal": "i", "shift": "I", "finger": "Middle_Right" },
+          { "key": "o", "position": [1, 8], "normal": "o", "shift": "O", "finger": "Ring_Right" },
+          { "key": "p", "position": [1, 9], "normal": "p", "shift": "P", "finger": "Pinky_Right" },
+          { "key": "^", "position": [1, 10], "normal": "^", "shift": "¨", "finger": "Pinky_Right" },
+          { "key": "$", "position": [1, 11], "normal": "$", "shift": "£", "altgr": "¤" , "finger": "Pinky_Right" }
+        ]
+      },
+      {
+        "row_index": 2,
+        "keys": [
+          { "key": "maj", "position": [2, 0], "normal": "maj", "shift": null, "finger": "Pinky_Left" },
+          { "key": "q", "position": [2, 1], "normal": "q", "shift": "Q", "finger": "Pinky_Left" },
+          { "key": "s", "position": [2, 2], "normal": "s", "shift": "S", "finger": "Ring_Left" },
+          { "key": "d", "position": [2, 3], "normal": "d", "shift": "D", "finger": "Middle_Left" },
+          { "key": "f", "position": [2, 4], "normal": "f", "shift": "F", "finger": "Index_Left" },
+          { "key": "g", "position": [2, 5], "normal": "g", "shift": "G", "finger": "Index_Left" },
+          { "key": "h", "position": [2, 6], "normal": "h", "shift": "H", "finger": "Index_Right" },
+          { "key": "j", "position": [2, 7], "normal": "j", "shift": "J", "finger": "Index_Right" },
+          { "key": "k", "position": [2, 8], "normal": "k", "shift": "K", "finger": "Middle_Right" },
+          { "key": "l", "position": [2, 9], "normal": "l", "shift": "L", "finger": "Ring_Right" },
+          { "key": "m", "position": [2, 10], "normal": "m", "shift": "M", "finger": "Pinky_Right" },
+          { "key": "ù", "position": [2, 11], "normal": "ù", "shift": "%", "finger": "Pinky_Right" },
+          { "key": "*", "position": [2, 12], "normal": "*", "shift": "µ", "finger": "Pinky_Right" },
+          { "key": "enter", "position": [2, 13], "normal": "enter", "shift": "enter", "finger": "Pinky_Right" }
+        ]
+      },
+      {
+        "row_index": 3,
+        "keys": [
+          { "key": "shift", "position": [3, 0], "normal": "shift", "shift": null, "finger": "Pinky_Left" },
+          { "key": "<", "position": [3, 1], "normal": "<", "shift": ">", "finger": "Pinky_Left" },
+          { "key": "w", "position": [3, 2], "normal": "w", "shift": "W", "finger": "Pinky_Left" },
+          { "key": "x", "position": [3, 3], "normal": "x", "shift": "X", "finger": "Ring_Left" },
+          { "key": "c", "position": [3, 4], "normal": "c", "shift": "C", "finger": "Middle_Left" },
+          { "key": "v", "position": [3, 5], "normal": "v", "shift": "V", "finger": "Index_Left" },
+          { "key": "b", "position": [3, 6], "normal": "b", "shift": "B", "finger": "Index_Left" },
+          { "key": "n", "position": [3, 7], "normal": "n", "shift": "N", "finger": "Index_Right" },
+          { "key": ",", "position": [3, 8], "normal": ",", "shift": "?", "finger": "Index_Right" },
+          { "key": ";", "position": [3, 9], "normal": ";", "shift": ".", "finger": "Middle_Right" },
+          { "key": ":", "position": [3, 10], "normal": ":", "shift": "/", "finger": "Ring_Right" },
+          { "key": "!", "position": [3, 11], "normal": "!", "shift": "§", "finger": "Pinky_Right" }
+        ]
+      },
+      {
+        "row_index": 4,
+        "keys": [
+          { "key": "space", "position": [4, 0], "normal": "space", "finger": "Thumb" },
+          { "key": "altgr", "position": [4, 1], "normal": "altgr", "finger": "Thumb" }
+        ]
+      }
+    ]
   }
-  
+}
