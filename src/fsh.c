@@ -233,70 +233,21 @@ int handle_for(for_info * f) {
     return EXIT_FAILURE;
 }
 
-// base nouvel execute_if
-/*int execute_if(if_info *info) {
-    if (!info || !info->test) {
-        fprintf(stderr, "Erreur : if_info mal formé.\n");
-        return 1;
-    }
-    printf("execute_if | test recu :%s\n", info->test);
-    int test_result = handle_line(info->test); // Exécute la condition via externalcmd, cause pb ?
-    //printf("execute_if | test|test_result :%s|%d\n", info->test, test_result);
-    if (test_result == 0) { // if (externalcmd(info->test) == EXIT_SUCCESS) { return handle_line(info->cmd_true); }
-        // Condition réussie : exec cmd_true avec handle_line
-        if (info->cmd_true != NULL) {
-            printf("execute_if | contenu de cmd_true :%s\n", info->cmd_true);
-            char *aupif = trim(info->cmd_true);
-            printf("execute_if | contenu post trim cmd_true :%s\n", aupif);
-            char *copy_true = malloc(strlen(info->cmd_true) + 1);
-            if (copy_true == NULL) {
-                return 1;
-            }
-            memcpy(copy_true, info->cmd_true, strlen(info->cmd_true) + 1);
-            return handle_line(copy_true);
-            /*
-            if (handle_line(info->cmd_true) != 0) {
-                fprintf(stderr, "Erreur lors de l'exécution de cmd_true.\n");
-                return 1;
-            }
-            
-        }
-    } else { // else if (info->cmd_false != NULL) { return handle_line(info->cmd_false); }
-        // Condition échouée : exec cmd_false s'il existe avec handle_line
-        if (info->cmd_false != NULL) {
-            char *copy_false = malloc(strlen(info->cmd_false) + 1);
-            if (copy_false == NULL) {
-                return 1;
-            }
-            memcpy(copy_false, info->cmd_false, strlen(info->cmd_false) + 1);
-            return handle_line(copy_false);
-            //return handle_line(info->cmd_false);
-            /*
-             if (handle_line(info->cmd_false) != 0) {
-                fprintf(stderr, "Erreur lors de l'exécution de cmd_false.\n");
-                return 1;
-            }
-            
-        }
-    }
-    return 0;   // retour échec ? pour histoires de val retour
-} */
-//
-
+// Fonction d'exécution du if.
 int execute_if(if_info *info) {
-    if (!info || !info->test) {
+    if (info == NULL || info->test == NULL) {
         fprintf(stderr, "Erreur : if_info mal formé.\n");
         return 1;
     }
     if(info->test[0] == '[') {  // Si crochets, ancienne logique d'évaluation
-        char *strip_test = strip_brackets(info->test);  // free(info->test suite à cela ?)
+        char *strip_test = strip_brackets(info->test);
         if (strip_test == NULL) {
-            fprintf(stderr, "Erreur : strip_brackets a échoué.\n"); //
+            fprintf(stderr, "Erreur : strip_brackets a échoué.\n");
             return 1;
         }
-        //printf("execute_if | condition après strip_brackets :%s\n", strip_test);
         int test_result = evaluate_test(strip_test);
         free(strip_test);
+
         if(test_result == 0) {
             if (info->cmd_true != NULL) {
                 //printf("execute_if | exécution de cmd_true : %s\n", info->cmd_true);
@@ -481,14 +432,44 @@ int handle_line(char * line) {
                     result = 1;
                     goto error;
                 }
-                //printf("handle_line | pre execute, iinfo :%s\n", iinfo->test->name);
-                //printf("handle_line | pre execute, iinfo_true :%s\n", iinfo->cmd_true);
                 result = execute_if(iinfo);
                 if(iinfo->test != NULL) {
                     iinfo->test = NULL;
                 }
-                //printf("handle_line | contenu de iinfo :%s\n", iinfo->test);
-                //printf("handle_line | contenu de iinfo_true :%s\n", iinfo->cmd_true);   // pour pb du free de cmd_true, pointeur de line ?
+                /*
+                if (result == 0) {
+                    if (iinfo -> cmd_true != NULL) {
+                        if (handle_redirection(iinfo -> cmd_true, 0) != 0) {
+                            result = 1;
+                            goto error;
+                        }
+                        //result = handle_line(iinfo -> cmd_true);
+                        close_redirection();
+                        free(iinfo -> cmd_false);
+                        iinfo -> cmd_false = NULL;
+                        free(iinfo);
+                        iinfo = NULL;
+                    } else {
+                        result = 1;
+                        goto error;
+                    }
+                } else {
+                    if (iinfo -> cmd_false != NULL) {
+                        if (handle_redirection(iinfo -> cmd_false, 0) != 0) {
+                            result = 1;
+                            goto error;
+                        }
+                        //result = handle_line(iinfo -> cmd_false);
+                        close_redirection();
+                        free(iinfo -> cmd_true);
+                        iinfo -> cmd_true = NULL;
+                        free(iinfo);
+                        iinfo = NULL;
+                    } else {
+                        result = 1;
+                        goto error;
+                    }
+                } */
                 /*if(iinfo->cmd_true != NULL) {
                     iinfo->cmd_true = NULL;
                 }
@@ -496,14 +477,12 @@ int handle_line(char * line) {
                     iinfo->cmd_false = NULL;
                 }*/
                 //printf("handle_line | contenu de iinfo_true post bled :%s\n", iinfo->cmd_true);   // pour pb du free de cmd_true, pointeur de line ?
-                //printf("handle_line | contenu de line :%s\n", line);
                 /* Libération de la mémoire de if_info après exécution
                 printf("handle_line | appel de destroyifinfo\n");
                 destroy_if_info(iinfo);
                 printf("handle_line | appel du destroy fini\n");
                 iinfo = NULL; */
 
-                //return result; // Retourner le résultat de l'exécution du if
                 /*
                 if (test_result == 0) {
                     if (iinfo -> cmd_true != NULL) {
@@ -574,10 +553,7 @@ int handle_line(char * line) {
     }
 
     if (iinfo != NULL) {
-        //printf("vers fin du handle_line, clean iinfo\n");
-        //printf("handle_line | appel de destroyifinfo\n");
         destroy_if_info(iinfo);
-        //printf("handle_line | appel du destroy fini\n");
         iinfo = NULL;
     }
 
@@ -592,7 +568,6 @@ int handle_line(char * line) {
         cmds = NULL;
     }
     free(line);
-    //line = NULL;
     return result;
 
 error:
@@ -606,7 +581,6 @@ error:
         cmds = NULL;
     }
     free(line);
-    //line = NULL;
     if (iinfo != NULL) {
         destroy_if_info(iinfo);
         iinfo = NULL;
