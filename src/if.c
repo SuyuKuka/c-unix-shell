@@ -42,118 +42,23 @@ void destroy_if_info(if_info *info) {
     }
 }
 
-char *strip_brackets(char *condition) {
-    if (!condition) return NULL;
-
-    size_t len = strlen(condition);
-    size_t start = 0, end = len - 1;
-
-    // Retire les crochets & espaces autour
-    while (start < len && (condition[start] == '[' || isspace((unsigned char)condition[start]))) start++;
-    while (end > start && (condition[end] == ']' || isspace((unsigned char)condition[end]))) end--;
-
-    size_t new_len = end - start + 1;
-    char *clean_condition = malloc(new_len + 1);
-    if (!clean_condition) {
-        perror("malloc");
-        return NULL;
-    }
-
-    memcpy(clean_condition, condition + start, new_len);
-    clean_condition[new_len] = '\0';
-    free(condition);
-    return clean_condition;
-}
-
-char *custom_strndup(const char *src, size_t n) {
-    if (src == NULL) return NULL;
-
-    size_t len = strnlen(src, n); // Trouve la longueur de la chaîne jusqu'à n caractères, droit à strnlen ?
-    char *dest = malloc(len + 1); // Alloue mémoire aussi pour '\0'
-    if (dest == NULL) {
-        goto error;
-    }
-    memcpy(dest, src, len);       // Copie les 'len' caractères
-    dest[len] = '\0';             // Termine la chaîne par un '\0'
-
-    return dest;
-
-    error:
-    free(dest);
-    return NULL;
-}
-
-/*
-* Extrait un bloc de texte entre accolades imbriquées.
-*/
-char *extract_block(const char *line, int *start) {
-    int i = *start;
-    int len = 0;
-    int brace_count = 0;
-    char *block = NULL;
-
-    while (line[i] != '\0' && line[i] != '{') { // Parcours jusqu'à 1ère accolade ouvrante '{'
-        i++;
-    }
-    if (line[i] != '{') {
-        write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
-        return NULL;
-    }
-    // Début du bloc après l'accolade ouvrante
-    int block_start = i + 1; 
-    brace_count++;
-    // Parcours du texte pour trouver la fin du bloc
-    for (i = block_start; line[i] != '\0'; i++) {
-        if (line[i] == '{') {
-            brace_count++; // Nouvelle accolade ouvrante
-        } else if (line[i] == '}') {
-            brace_count--; // Accolade fermante
-            if (brace_count == 0) {
-                break; // Fin du bloc trouvée
-            }
-        }
-    }
-
-    // Check si on a trouvé une accolade fermante
-    if (brace_count != 0) {
-        write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
-        return NULL;
-    }
-    // Calcule la longueur du bloc
-    len = i - block_start;
-    block = malloc(len + 1);    // Alloue la mémoire pour le bloc extrait
-    if (block == NULL) {
-        perror("malloc");
-        free(block);
-        return NULL;
-    }
-    // Copier manuellement le contenu dans le tableau alloué
-    for (int j = 0; j < len; j++) {
-        block[j] = line[block_start + j];
-    }
-    block[len] = '\0'; // Terminer la chaîne par '\0'
-    // Maj de la position de départ pour le prochain traitement
-    *start = i + 1; // Ignorer l'accolade fermante
-    return block;
-}
 
 int evaluate_test(char *condition) {
     if(condition == NULL) return 1;
-        // Tableau d'arguments alloué dynamiquement
-        char **test_args = malloc(sizeof(char *) * 10); // Taille initiale (agrandie si besoin)
-        if (!test_args) {
+        char **test_args = malloc(sizeof(char *) * 10); // Taille initiale (dynamique, agrandie si besoin)
+        if (test_args == NULL) {
             perror("malloc");
             return 1;
         }
         test_args[0] = "/usr/bin/test"; // commande test
         int arg_index = 1;
         char *name = condition;
-        //printf("if, evaluate | contenu de la chaîne condition name :%s\n", name); //contenu bien entier de la condition
+        //printf("if, evaluate | contenu de la chaîne condition name :%s\n", name);
         int in_quote = 0;
         int start = 0;
         for (int i = 0; name[i] != '\0'; i++) {
             if (name[i] == '"' || name[i] == '\'') {
-                in_quote = !in_quote; // bascule hors/dans guillemets
+                in_quote = !in_quote;
                 continue;
             }
             if (name[i] == ' ' && !in_quote) {
@@ -224,7 +129,7 @@ if_info * handle_if_line(char *line) {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
         return NULL;
     }
-    if_info * info = if_info_init(); // Initialise la struct
+    if_info * info = if_info_init();
     if (info == NULL) {
         perror("if_info_init");
         return NULL;
@@ -240,7 +145,7 @@ if_info * handle_if_line(char *line) {
     cursor += 2; // Skip "if"
 
     // 2. Extraction de la condition (jusqu'à '{')
-    while (isspace((unsigned char)*cursor)) cursor++; // Skip espaces
+    while (isspace((unsigned char)*cursor)) cursor++;
     char * condition_start = cursor;
     while (*cursor != '\0' && *cursor != '{') cursor++;
     if (*cursor != '{') {
@@ -255,7 +160,7 @@ if_info * handle_if_line(char *line) {
     }
 
     info->test = malloc(strlen(condition) + 1);
-    if (info->cmd_true == NULL) {
+    if (info->test == NULL) {
         free(condition);
         goto error;
     }
@@ -275,7 +180,6 @@ if_info * handle_if_line(char *line) {
     info->cmd_true = malloc(strlen(tmp) + 1);
     if (info->cmd_true == NULL) {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
-        free(tmp);
         goto error;
     }
     memcpy(info->cmd_true, tmp, strlen(tmp) + 1);
@@ -314,10 +218,10 @@ if_info * handle_if_line(char *line) {
         info->cmd_false = malloc(strlen(tmp) + 1);
         if (info->cmd_false == NULL) {
             write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
-            free(tmp);
             goto error;
         }
         memcpy(info->cmd_false, tmp, strlen(tmp) + 1);
+        //printf("handle_if_line | contenu info->cmd_false :%s|\n", info->cmd_false);
         free(tmp);
         if (info->cmd_false == NULL) {
             write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
@@ -337,10 +241,11 @@ if_info * handle_if_line(char *line) {
     return info;
 
     error:
+    if (tmp != NULL) free(tmp);
     if (condition != NULL) free(condition);
     if (info != NULL) {
-        destroy_if_info(info);  // Assurez-vous que destroy_if_info est robuste
-        info = NULL;  // Important pour éviter des problèmes en aval
+        destroy_if_info(info);
+        info = NULL;
     }
     return NULL;
 }

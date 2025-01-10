@@ -19,28 +19,6 @@ void destroy_split(char ** arr, int * size) {
 char ** split(cmd_info * cmd, int * size) {
     char ** cmd_split = NULL;
 
-    //
-    if (cmd->name[0] == '[') {
-        *size = 1; // Un seul élément dans le tableau
-        cmd_split = (char **) malloc((*size + 1) * sizeof(char *)); // Taille de 2 pour inclure NULL à la fin
-        if (cmd_split == NULL) {
-            *size = 0;
-            return NULL;
-        }
-
-        cmd_split[0] = calloc(strlen(cmd->name) + 1, sizeof(char));
-        if (cmd_split[0] == NULL) {
-            free(cmd_split);
-            *size = 0;
-            return NULL;
-        }
-
-        memcpy(cmd_split[0], cmd->name, strlen(cmd->name) + 1);
-        cmd_split[1] = NULL; // Fin du tableau
-        return cmd_split;
-    }
-    //
-
     size_t split_index = 0;
     int i = 0;
     size_t space = 0;
