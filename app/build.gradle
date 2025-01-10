@@ -43,6 +43,34 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
+// Tâche personnalisée pour logiciel 1
+tasks.register('run1', JavaExec) {
+    group = 'application'
+    description = 'Run analyzer (Logiciel 1)'
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'random.analyzer.App'
+    workingDir = rootProject.projectDir
+
+    // Force l'utilisation de la version de Java configurée dans `java.toolchain`
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    })
+}
+
+// Tâche personnalisée pour logiciel 2
+tasks.register('run2', JavaExec) {
+    group = 'application'
+    description = 'Run evaluator (Logiciel 2)'
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'random.evaluator.Main'
+    workingDir = rootProject.projectDir
+
+    // Force l'utilisation de la version de Java configurée dans `java.toolchain`
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    })
+}
+
 run {
     workingDir = rootProject.projectDir
 }
