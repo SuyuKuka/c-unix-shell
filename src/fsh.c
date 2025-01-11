@@ -626,6 +626,10 @@ error:
     return result;
 }
 
+/*  
+ * Traite la ligne de commande
+ * Sépare la commande en plusieurs commandes si on a une commande structurée ou une pipeline.
+*/
 command ** handle_cmd(char * line) {
     size_t pos = 0, nb_cmd = 0, pos_cmd = 0, for_cmd = 0;
     command ** cmd = calloc(BUFFER_SIZE, sizeof(command *));
@@ -676,6 +680,7 @@ command ** handle_cmd(char * line) {
             continue;
         }
 
+        // Solution pour le cas de "yes", utilisation de timeout pour stopper le processus
         if (strcmp(cmd[nb_cmd] -> cmd_line, "yes") == 0) {
             cmd[nb_cmd] -> cmd_line = strdup("timeout 0.1s yes");
             if (cmd[nb_cmd] -> cmd_line == NULL) {
