@@ -10,15 +10,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Keyboard {
-    private ArrayList<String> characters;
-    private ArrayList<String> finger;
-    private ArrayList<int[]> positions;
+    private ArrayList<String> characters = new ArrayList<String>();
+    private ArrayList<String> finger = new ArrayList<String>();
+    private ArrayList<int[]> positions = new ArrayList<int[]>();
 
-    public Keyboard(String ngram) {
+    /**
+     * Reinitialise les listes des caracteres, des doigts et des positions
+     * pour pouvoir recommencer a decomposer un autre ngram
+     */
+    public void reset() {
         characters = new ArrayList<String>();
         finger = new ArrayList<String>();
         positions = new ArrayList<int[]>();
-        decomposeAndTranslateNgram(ngram);
     }
 
     /**
@@ -26,7 +29,7 @@ public class Keyboard {
      * On prend chaque lettre du ngram et on la traduit
      * Apres la traduction du ngram on appelle la fonction ngramToKeyboard
      */
-    private void decomposeAndTranslateNgram(String ngram) {
+    public void decomposeAndTranslateNgram(String ngram) {
         for (int i = 0; i < ngram.length(); i++) {
             String currentChar = String.valueOf(ngram.charAt(i));
             translateNgram(currentChar);
@@ -245,9 +248,5 @@ public class Keyboard {
      */
     public ArrayList<int[]> getPositions() {
         return positions;
-    }
-
-    public static void main(String[] args) {
-        new Keyboard("î a");
     }
 }

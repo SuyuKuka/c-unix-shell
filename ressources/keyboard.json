@@ -5,19 +5,19 @@
       {
       "row_index": 0,
       "keys": [
-          { "key": "²", "position": [0, 0], "normal": "²", "shift": null, "altgr": null, "finger": "Pinky_Left" },
-          { "key": "&", "position": [0, 1], "normal": "&", "shift": "1", "altgr": null, "finger": "Pinky_Left" },
-          { "key": "é", "position": [0, 2], "normal": "é", "shift": "2", "altgr": "~", "finger": "Ring_Left" },
-          { "key": "\"", "position": [0, 3], "normal": "\"", "shift": "3", "altgr": "#", "finger": "Middle_Left" },
-          { "key": "'", "position": [0, 4], "normal": "'", "shift": "4", "altgr": "{", "finger": "Index_Left" },
-          { "key": "(", "position": [0, 5], "normal": "(", "shift": "5", "altgr": "[", "finger": "Index_Left" },
-          { "key": "-", "position": [0, 6], "normal": "-", "shift": "6", "altgr": "|", "finger": "Index_Right" },
-          { "key": "è", "position": [0, 7], "normal": "è", "shift": "7", "altgr": "`", "finger": "Index_Right" },
-          { "key": "_", "position": [0, 8], "normal": "_", "shift": "8", "altgr": "\\", "finger": "Middle_Right" },
-          { "key": "ç", "position": [0, 9], "normal": "ç", "shift": "9", "altgr": "^", "finger": "Ring_Right" },
-          { "key": "à", "position": [0, 10], "normal": "à", "shift": "0", "altgr": "@", "finger": "Pinky_Right" },
-          { "key": ")", "position": [0, 11], "normal": ")", "shift": "°", "altgr": "]", "finger": "Pinky_Right" },
-          { "key": "=", "position": [0, 12], "normal": "=", "shift": "+", "altgr": "}", "finger": "Pinky_Right" }
+          { "key": "²", "position": [0, -1], "normal": "²", "shift": null, "altgr": null, "finger": "Pinky_Left" },
+          { "key": "&", "position": [0, 0], "normal": "&", "shift": "1", "altgr": null, "finger": "Pinky_Left" },
+          { "key": "é", "position": [0, 1], "normal": "é", "shift": "2", "altgr": "~", "finger": "Ring_Left" },
+          { "key": "\"", "position": [0, 2], "normal": "\"", "shift": "3", "altgr": "#", "finger": "Middle_Left" },
+          { "key": "'", "position": [0, 3], "normal": "'", "shift": "4", "altgr": "{", "finger": "Index_Left" },
+          { "key": "(", "position": [0, 4], "normal": "(", "shift": "5", "altgr": "[", "finger": "Index_Left" },
+          { "key": "-", "position": [0, 5], "normal": "-", "shift": "6", "altgr": "|", "finger": "Index_Right" },
+          { "key": "è", "position": [0, 6], "normal": "è", "shift": "7", "altgr": "`", "finger": "Index_Right" },
+          { "key": "_", "position": [0, 7], "normal": "_", "shift": "8", "altgr": "\\", "finger": "Middle_Right" },
+          { "key": "ç", "position": [0, 8], "normal": "ç", "shift": "9", "altgr": "^", "finger": "Ring_Right" },
+          { "key": "à", "position": [0, 9], "normal": "à", "shift": "0", "altgr": "@", "finger": "Pinky_Right" },
+          { "key": ")", "position": [0, 10], "normal": ")", "shift": "°", "altgr": "]", "finger": "Pinky_Right" },
+          { "key": "=", "position": [0, 11], "normal": "=", "shift": "+", "altgr": "}", "finger": "Pinky_Right" }
       ]
       },
       {
@@ -51,24 +51,24 @@
           { "key": "l", "position": [2, 8], "normal": "l", "shift": "L", "finger": "Ring_Right" },
           { "key": "m", "position": [2, 9], "normal": "m", "shift": "M", "finger": "Pinky_Right" },
           { "key": "ù", "position": [2, 10], "normal": "ù", "shift": "%", "finger": "Pinky_Right" },
-          { "key": "*", "position": [2, 11], "normal": "*", "shift": "µ", "finger": "Pinky_Right" },
+          { "key": "*", "position": [2, 11], "normal": "*", "shift": "µ", "finger": "Pinky_Right" }
         ]
       },
       {
         "row_index": 3,
         "keys": [
-          { "key": "shift", "position": [3, 0], "normal": "shift", "shift": null, "finger": "Pinky_Left" },
-          { "key": "<", "position": [3, 1], "normal": "<", "shift": ">", "finger": "Pinky_Left" },
-          { "key": "w", "position": [3, 2], "normal": "w", "shift": "W", "finger": "Pinky_Left" },
-          { "key": "x", "position": [3, 3], "normal": "x", "shift": "X", "finger": "Ring_Left" },
-          { "key": "c", "position": [3, 4], "normal": "c", "shift": "C", "finger": "Middle_Left" },
-          { "key": "v", "position": [3, 5], "normal": "v", "shift": "V", "finger": "Index_Left" },
-          { "key": "b", "position": [3, 6], "normal": "b", "shift": "B", "finger": "Index_Left" },
-          { "key": "n", "position": [3, 7], "normal": "n", "shift": "N", "finger": "Index_Right" },
-          { "key": ",", "position": [3, 8], "normal": ",", "shift": "?", "finger": "Index_Right" },
-          { "key": ";", "position": [3, 9], "normal": ";", "shift": ".", "finger": "Middle_Right" },
-          { "key": ":", "position": [3, 10], "normal": ":", "shift": "/", "finger": "Ring_Right" },
-          { "key": "!", "position": [3, 11], "normal": "!", "shift": "§", "finger": "Pinky_Right" }
+          { "key": "shift", "position": [3, -2], "normal": "shift", "shift": null, "finger": "Pinky_Left" },
+          { "key": "<", "position": [3, -1], "normal": "<", "shift": ">", "finger": "Pinky_Left" },
+          { "key": "w", "position": [3, 0], "normal": "w", "shift": "W", "finger": "Pinky_Left" },
+          { "key": "x", "position": [3, 1], "normal": "x", "shift": "X", "finger": "Ring_Left" },
+          { "key": "c", "position": [3, 2], "normal": "c", "shift": "C", "finger": "Middle_Left" },
+          { "key": "v", "position": [3, 3], "normal": "v", "shift": "V", "finger": "Index_Left" },
+          { "key": "b", "position": [3, 4], "normal": "b", "shift": "B", "finger": "Index_Left" },
+          { "key": "n", "position": [3, 5], "normal": "n", "shift": "N", "finger": "Index_Right" },
+          { "key": ",", "position": [3, 6], "normal": ",", "shift": "?", "finger": "Index_Right" },
+          { "key": ";", "position": [3, 7], "normal": ";", "shift": ".", "finger": "Middle_Right" },
+          { "key": ":", "position": [3, 8], "normal": ":", "shift": "/", "finger": "Ring_Right" },
+          { "key": "!", "position": [3, 9], "normal": "!", "shift": "§", "finger": "Pinky_Right" }
         ]
       },
       {
