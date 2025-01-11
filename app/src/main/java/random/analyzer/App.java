@@ -24,7 +24,7 @@ public class App {
         /* Appels fonctionnant pour le ./gradlew run */
         //inputFiles.add(getWorkingDirectoryPath("ressources/poésie.txt").toString());
         inputFiles.add(getWorkingDirectoryPath("ressources/alphabet.txt").toString());
-        inputFiles.add(getWorkingDirectoryPath("ressources/corpus.txt").toString());
+        //inputFiles.add(getWorkingDirectoryPath("ressources/corpus.txt").toString());
 
         System.out.println("(Logiciel 1) Lancement de l'analyseur de corpus.");
         new Analyzer(inputFiles);   // Run : Input -> ... -> Output

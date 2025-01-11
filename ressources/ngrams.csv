@@ -1,87 +1,15 @@
 n-gramme;nb_occurrence
 b;6
-e;5
 c;4
- ;3
-.;3
-a;3
-n;2
-s;2
-';1
-L;1
-f;1
-g;1
-i;1
-l;1
-r;1
-t;1
-u;1
-x;1
-é;1
-î;1
-ô;1
+a;2
 bb;5
 cc;3
-..;2
- a;1
- e;1
- f;1
-'î;1
-L';1
 aa;1
 ab;1
-au;1
 bc;1
-e ;1
-ei;1
-en;1
-es;1
-et;1
-fô;1
-gé;1
-ig;1
-le;1
-ne;1
-nn;1
-re;1
-s ;1
-s.;1
-ts;1
-ux;1
-x ;1
-ée;1
-îl;1
-ôr;1
 bbb;4
 ccc;2
- au;1
- en;1
- fô;1
-'îl;1
-...;1
-L'î;1
 aab;1
 abb;1
-aux;1
 bbc;1
 bcc;1
-e a;1
-eig;1
-enn;1
-es.;1
-ets;1
-fôr;1
-gée;1
-igé;1
-le ;1
-nei;1
-nne;1
-ret;1
-s e;1
-s..;1
-ts ;1
-ux ;1
-x f;1
-ées;1
-île;1
-ôre;1
