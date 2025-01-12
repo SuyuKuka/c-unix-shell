@@ -39,13 +39,13 @@ qui vont respectivement initialiser une structure de commande, et la détruire p
 ### - cmdutils.c -
 Regroupe un ensemble de fonctions utilitaires pour le traitement d'une ligne en commande. Notamment utilisé dans le fichier if.c.
 
-**'char *trim(char *str)'** réduit la chaîne de caractères 'str' pour ne conserver que les caractères en ignorant les espaces superflus autour.
+'char *trim(char *str)' réduit la chaîne de caractères 'str' pour ne conserver que les caractères en ignorant les espaces superflus autour.
 
-**'char *strip_brackets(char *condition)'** élimine les crochets entourant 'condition'.
+'char *strip_brackets(char *condition)' élimine les crochets entourant 'condition'.
 
-**'char *custom_strndup(const char *src, size_t n)'** simule le comportement d'une fonction strndup.
+'char *custom_strndup(const char *src, size_t n)' simule le comportement d'une fonction strndup.
 
-**'char *extract_block(const char *line, int *start)'** extrait un bloc de texte entre des accolades imbriquées.
+'char *extract_block(const char *line, int *start)' extrait un bloc de texte entre des accolades imbriquées.
 
 
 
@@ -57,7 +57,7 @@ Fichier s'occupant de la gestion des commandes externes.
 **'char ** split(cmd_info * cmd, int * size)'** sépare 'cmd' ainsi que ses options et arguments selon une taille 'size',
 et stocke les informations récupérées dans un char **.
 
-**'int externalcmd(cmd_info *cmd)'** récupère une commande externe puis l'exécute.
+'int externalcmd(cmd_info *cmd)' récupère une commande externe puis l'exécute.
 
 
 
@@ -72,13 +72,10 @@ typedef struct for_info {
     int opt_size;
     int opt_a;
     int opt_r;
-
     int opt_ext;
     char * ext;
-
     int opt_type;
     char file_type;
-
     int opt_p;
     int p_max;
     char for_var;
@@ -127,8 +124,11 @@ Les handlers (autres):
 
 Les fonctions d'exécution
 **'int exec_for_cmd(for_info * f, char * path, int var)'**
-**'int execute_if(if_info *info)' **
+
+**'int execute_if(if_info *info)'**
+
 **'int execute_pipeline(cmd_info * cmd_info, int in_fd, int * out_fd, command * cmd)'**
+
  exécutent respectivement le for, le if et les pipelines.
 
 La fonction **'int handle_line(char * line)'** s'occupe de 'line' donnée en argument.
@@ -162,12 +162,12 @@ typedef struct if_info {
 } if_info;
 `
 
-**'if_info * if_info_init()'** et **'void destroy_if_info(if_info *info)'**
+**'if_info * if_info_init()'** et 'void destroy_if_info(if_info *info)'
 qui vont respectivement initialiser la structure d'une commande if, et la détruire puis libérer sa mémoire.
 
-**'int evaluate_test(char *condition)'** évalue 'condition' et renvoie sa valeur de retour.
+'int evaluate_test(char *condition)' évalue 'condition' et renvoie sa valeur de retour.
 
-**'if_info * handle_if_line(char *line)'** analyse 'line' donnée pour construire les informations d'un if_info.
+'if_info * handle_if_line(char *line)' analyse 'line' donnée pour construire les informations d'un if_info.
 
 
 
