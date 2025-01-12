@@ -1,5 +1,6 @@
 #ifndef REDIRECTION
 #define REDIRECTION
+#define REDIRECTION 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

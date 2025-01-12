@@ -5,15 +5,13 @@
 #include <sys/types.h>
 #include <string.h>
 #include <ctype.h>
-#include <sys/wait.h>
+#include <sys/wait.h>   // includepath ?
 #include "fsh.h"
 
 char *trim(char *str);
 
-char *strip_brackets(char *);
+cmd_info *parse_cmd(const char *cmd);
 
-char *custom_strndup(const char *, size_t);
-
-char *extract_block(const char *, int *);
+int execute_cmd(cmd_info *cmd);
 
 #endif
