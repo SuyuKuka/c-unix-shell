@@ -33,7 +33,7 @@ typedef struct for_info {
     int opt_type;
     char file_type;
 
-    int opt_p;  // boolean pour p ?
+    int opt_p;
     int p_max;
     char for_var;
 } for_info;

@@ -44,7 +44,7 @@ void destroy_for_info(for_info * f) {
     free(f);
 }
 
-//Initialise les champs du for_info en fonctions des options.
+// Initialise les champs du for_info en fonctions des options.
 int init_options(for_info * f) {
     size_t i = 0;
     while (i < f -> opt_size) {
@@ -213,7 +213,7 @@ for_info * handle_for_line(char * line) {
     return NULL;
 }
 
-//Remplace les $F (fonctionne avec une variable étant une autre lettre que F) de line par path.
+// Remplace les $F (fonctionne avec une variable étant une autre lettre que F) de line par path.
 char * replace_var(char * line, char * path, char var) {
     char * replaced = calloc(CMD_SIZE, sizeof(char));
 
@@ -239,7 +239,7 @@ char * replace_var(char * line, char * path, char var) {
     return replaced;
 }
 
-//Fonction qui crée une copie de for_info avec la même valeur pour ses champs.
+// Fonction qui crée une copie de for_info avec la même valeur pour ses champs.
 for_info * copy_for_info (for_info * f) {
     for_info * copy = NULL;
     copy = for_info_init();
@@ -268,7 +268,7 @@ for_info * copy_for_info (for_info * f) {
     return NULL;
 }
 
-//Vérifie si l'extension correspond à celle attendue.
+// Vérifie si l'extension correspond à celle attendue.
 int check_ext (char * file, const char * ext) {
     size_t length = 0;
     length = strlen(file);
@@ -309,7 +309,7 @@ int check_ext (char * file, const char * ext) {
     return result;
 }
 
-//Efface l'extension du nom d'un fichier.
+// Efface l'extension du nom d'un fichier.
 void remove_ext(char * file) {
     size_t length = strlen(file);
     size_t i = 0;

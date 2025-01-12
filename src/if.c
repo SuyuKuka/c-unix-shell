@@ -53,9 +53,10 @@ int evaluate_test(char *condition) {
         test_args[0] = "/usr/bin/test"; // commande test
         int arg_index = 1;
         char *name = condition;
-        //printf("if, evaluate | contenu de la chaîne condition name :%s\n", name);
         int in_quote = 0;
         int start = 0;
+
+        // Rempli le tableau test_args contenant les informations de la condition à évaluer.
         for (int i = 0; name[i] != '\0'; i++) {
             if (name[i] == '"' || name[i] == '\'') {
                 in_quote = !in_quote;
@@ -64,7 +65,6 @@ int evaluate_test(char *condition) {
             if (name[i] == ' ' && !in_quote) {
                 name[i] = '\0';
                 test_args[arg_index++] = &name[start];
-                // printf("execute_if | contenu de test_args[%d] :%s\n", arg_index, test_args[arg_index]);
                 start = i + 1;
 
                 if (arg_index % 10 == 0) { // Réallocation si nécessaire
@@ -79,12 +79,9 @@ int evaluate_test(char *condition) {
         if (name[start] != '\0') {
             test_args[arg_index++] = &name[start];
         }
-        test_args[arg_index] = NULL; // NULL-terminer
-        //printf("if, evaluate | contenu de la chaîne condition name post testargs :%s\n", name); //contenu bien entier de la condition
-        //printf("if, evaluate | contenu de test_args[0] :%s\n", test_args[0]);
-        //printf("if, evaluate | contenu de test_args[1] :%s\n", test_args[1]);
-        //printf("if, evaluate | contenu de test_args[2] :%s\n", test_args[2]);
-        //printf("if, evaluate | contenu de test_args[3] :%s\n", test_args[3]);
+        test_args[arg_index] = NULL; // NULL-termine
+
+        // Exécution du test
         pid_t pid = fork();
         if (pid < 0) {
             perror("fork");
@@ -113,7 +110,8 @@ int evaluate_test(char *condition) {
             return 1;
         }
         free(test_args);
-        if (WIFEXITED(status)) {    // Test réussi si le code de retour est 0
+
+        if (WIFEXITED(status)) {    // Test réussi si le code de retour est 0, échec sinon.
             return WEXITSTATUS(status);
         }
         return 1;
@@ -136,7 +134,7 @@ if_info * handle_if_line(char *line) {
     }
     char *cursor = line;
 
-    // 1. Vérification de la syntaxe : mot-clé "if", useless vu fonctionnement fsh ?
+    // 1. Vérification de la syntaxe : mot-clé "if"
     while (*cursor != '\0' && isspace((unsigned char)*cursor)) cursor++; // Skip espaces
     if (strncmp(cursor, "if", 2) != 0 || !isspace(cursor[2])) {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
@@ -172,13 +170,11 @@ if_info * handle_if_line(char *line) {
     while (isspace((unsigned char) * cursor)) cursor++;
     int start = cursor - line; // Position actuelle
     char * tmp = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
-    //printf("handle_if_line | tmp de cmd_true :%s|\n", tmp);
     if (tmp == NULL) {
         goto error;
     }
     
     char * tmp2 = trim(tmp);
-    //printf("handle_if_line post trim| tmp de cmd_true :%s|\n", tmp);
     free(info->cmd_true);
     info->cmd_true = malloc(strlen(tmp2) + 1);
     if (info->cmd_true == NULL) {
@@ -186,7 +182,6 @@ if_info * handle_if_line(char *line) {
         goto error;
     }
     memcpy(info->cmd_true, tmp2, strlen(tmp2) + 1);
-    //printf("handle_if_line | contenu info->cmd_true :%s\n", info->cmd_true);
     free(tmp);
     free(tmp2);
     if (info->cmd_true == NULL) {
@@ -194,14 +189,6 @@ if_info * handle_if_line(char *line) {
         goto error;
     }
     cursor = line + start;
-    /*
-    memmove(info -> cmd_true, tmp, strlen(tmp) + 1);
-    free(tmp);
-    if (info -> cmd_true == NULL) {
-        write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
-        goto error;
-    }
-    cursor = line + start; // Maj curseur après le bloc cmd_true */
 
     // 4. Vérification & extraction de cmd_false si "else" présent
     while (isspace((unsigned char) * cursor)) cursor++;
@@ -226,22 +213,12 @@ if_info * handle_if_line(char *line) {
             goto error;
         }
         memcpy(info->cmd_false, tmp, strlen(tmp) + 1);
-        //printf("handle_if_line | contenu info->cmd_false :%s|\n", info->cmd_false);
         free(tmp);
         if (info->cmd_false == NULL) {
             write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
             goto error;
         }
         cursor = line + start;
-
-        /*
-        memmove(info -> cmd_false, tmp, strlen(tmp) + 1);
-        free(tmp);
-        if (info -> cmd_false == NULL) {
-            write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
-            goto error;
-        }
-        cursor = line + start; // Maj curseur après le bloc cmd_false */
     }
     return info;
 
