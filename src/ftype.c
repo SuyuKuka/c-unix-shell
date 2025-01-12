@@ -1,4 +1,6 @@
-#include "ftype.h"
+#include <sys/stat.h>
+#include <unistd.h>
+#include "cmd.h"
 
 int ftype(cmd_info * cmd) {
     struct stat s;
