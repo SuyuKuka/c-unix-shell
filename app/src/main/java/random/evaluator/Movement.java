@@ -1,15 +1,11 @@
 package random.evaluator;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import org.checkerframework.checker.units.qual.N;
 
 public class Movement { 
     private double totalScore = 100.0;
-
-    private int count = 0;
 
     private ArrayList<String> characters = new ArrayList<String>();
     private ArrayList<String> finger = new ArrayList<String>();
@@ -45,7 +41,18 @@ public class Movement {
         }
     }
 
+    /**
+     * Calcule le score du mouvement en fonction de la taille du n-gramme.
+     * Pour chaque taille de mouvement (1, 2 ou 3 caractères), le score est ajusté
+     * en fonction des poids associés aux caractéristiques du mouvement.
+     * Réduit ou augmente le score total en fonction des mouvements calculés 
+     * pour évaluer le clavier sur 100. 
+     * Gère les n-grammes jusqu'à une longueur de 3, affiche une erreur si la taille
+     * dépasse cette limite.
+     */
+
     private void calculateScore() {
+        // "Movement" a une seule touche
         if (characters.size() == 1) {
 
             System.out.print("Taille 1 : ");
@@ -118,16 +125,10 @@ public class Movement {
             String fingerSt3 = fingerUsed3[0];
             String hand3 = fingerUsed3[1];
 
-            double redirections = getRedirections(pos1, pos2, pos3);
+            double redirections = getRedirections(pos1, pos2, pos3, hand1, hand2, hand3, fingerSt1, fingerSt2, fingerSt3);
             double skipGrammes = getSkipGrammes(hand1, hand2, hand3, fingerSt1, fingerSt2, fingerSt3);
             totalScore = totalScore - (skipGrammes + redirections);
-            System.out.println("Poids du mouvement (Taille 3) : " + skipGrammes);
-
-            // Mauvais
-            // Redirections ( les mouvements à une main avec changement de direction : de l’intérieur vers l’extérieur, puis de l’extérieur vers l’intérieur, ou alors le contraire)
-            // en particulier : les mauvaises redirections, ne faisant pas intervenir l’index, considérées le pire enchainement possible.
-            // SKS (es «skipgrammes» sur le même doigt (SKS13), c.-à-d., comme un SFB, mais avec une touche de l’autre main entre les deux)
-
+            System.out.println("Poids du mouvement (Taille 3) : " + (skipGrammes + redirections));
         } else {
             String ngram = "";
             for (int i = 0; i < characters.size(); i++) {
@@ -233,7 +234,6 @@ public class Movement {
         }
         return 0.0;
     }
-    
 
     /**
      * @param pos1 
@@ -249,7 +249,6 @@ public class Movement {
         return 0.0;
     }
 
-
     /**
      * @param hand1 
      * @param hand2 
@@ -261,7 +260,7 @@ public class Movement {
         }
         return 0.0;
     }
-
+    
     /**
      * @param pos1 
      * @param pos2 
@@ -285,8 +284,32 @@ public class Movement {
 
     // Mouvement de longueur 3
 
-    private double getRedirections(int[] pos1, int[] pos2, int[] pos3, String hand1, String hand2, String hand3) {
-        
+    /**
+     * @param pos1 
+     * @param pos2 
+     * @param pos3 
+     * @param hand1 
+     * @param hand2 
+     * @param hand3 
+     * @param finger1 
+     * @param finger2 
+     * @param finger3 
+     * @return 3.0 si les trois caracteres sont sur la meme main,
+     *         et que la position fais un changement de direction,
+     *         (intérieur extérieur intérieur ou inversement) et
+     *         si l'index n'a pas été utilisé alors il est considéré comme le pire mouvement
+     *         0.0 sinon.
+     */
+    private double getRedirections(int[] pos1, int[] pos2, int[] pos3, String hand1, String hand2, String hand3, String finger1, String finger2, String finger3) {
+        if (hand1.equals(hand2) && hand2.equals(hand3)) {
+            if (pos1[1] > pos2[1] && pos2[1] < pos3[1]
+                || pos1[1] < pos2[1] && pos2[1] > pos3[1]) {
+                if (!finger1.equals("index") && !finger2.equals("index") && !finger3.equals("index")) {
+                    return 5.0;
+                }
+                return 3.0;
+            }
+        }
         return 0.0;
     }
 
@@ -303,13 +326,15 @@ public class Movement {
     private double getSkipGrammes(String hand1, String hand2, String hand3, String finger1, String finger2, String finger3) {
         if (finger1.equals(finger2) && finger2.equals(finger3)) {
             if (hand1.equals(hand3) && !hand2.equals(hand3)) {
-                System.out.println("Skipgramme");
                 return 3.0; 
             }
         }
         return 0.0;
     }
 
+    /**
+     * @return le score total
+     */
     public double getTotalScore() {
         return totalScore;
     }
