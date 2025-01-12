@@ -1,7 +1,16 @@
 #include "fsh.h"
 
-int last_return = -1;
+int last_return = -1; 
 
+void command_signal_handler (int sig) {
+    if (sig == SIGTERM) {
+        exit(255);
+    } else if (sig == SIGINT) {
+        exit(130);
+    }
+}
+
+//Vérifie que l'argument soit valide (un nombre) s'il y en a un et exit avec cet arguement sinon exit avec la dernière valeur de retour.
 int fsh_exit(cmd_info * cmd) {
     int flag = 1;
     size_t args_length = strlen(cmd -> args);
@@ -24,17 +33,50 @@ int fsh_exit(cmd_info * cmd) {
     }
 }
 
+/*  Gère l'exécution des commandes. 
+    Appel aux commandes de fsh si nécessaire.
+    Sinon crée un processus et gère les commandes externes.
+    Renvoie :
+    0 si tout fonctionne correctement, 
+    1 en cas d'erreur,
+    255 pour la réception de SIGTERM. */
 int call_function (cmd_info * cmd) {
-    if (strcmp("pwd", cmd -> name) == 0) {
+    if (strcmp("exit", cmd -> name) == 0) {
+        fsh_exit(cmd);
+    } else if (strcmp("pwd", cmd -> name) == 0) {
         return pwd(cmd);
-    } else if (strcmp("exit", cmd -> name) == 0) {
-        return fsh_exit(cmd);
     } else if (strcmp(cmd -> name, "ftype") == 0) {
         return ftype(cmd);
     } else if (strcmp(cmd -> name, "cd") == 0) { 
         return cd(cmd);
     } else {
-        return externalcmd(cmd);
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror("Erreur fork call_function");
+            exit(1);
+        } else if (pid == 0) {
+            struct sigaction sa = {0};
+            sa.sa_handler = command_signal_handler;
+            sigemptyset(&sa.sa_mask);
+            if (sigaction(SIGTERM, &sa, NULL) == -1) {
+                perror("Commande SIGTERM.");
+                exit(1);
+            }
+            if (sigaction(SIGINT, &sa, NULL) == -1) {
+                perror("Commande SIGINT.");
+                exit(1);
+            }
+            exit(externalcmd(cmd));
+        } else {
+            int status;
+            waitpid(pid, &status, 0);
+            if (WIFEXITED(status)) {
+                int exit_status = WEXITSTATUS(status);
+                if (exit_status != 0) {
+                    return exit_status;
+                }
+            }
+        }
     }
 }
 
@@ -108,6 +150,26 @@ int handle_for_dep(for_info * f, struct stat st, char * path, char * dir_name, i
     return result;
 }
 
+// À la fin de la boucle principale du for, on wait tous les processus restants pour le cas du -p.
+void wait_for_remaining_processes() {
+    int status;
+    while (active_processes > 0) {
+        pid_t pid = waitpid(-1, &status, 0);
+        if (pid > 0) {
+            active_processes--;
+            if (WIFEXITED(status)) {  // Si le processus s'est terminé normalement
+                int exit_code = WEXITSTATUS(status);
+                if (exit_code > global_result) {
+                    global_result = exit_code;
+                }
+            }
+        } else {
+            perror("Erreur waitpid");
+            break;
+        }
+    }
+}
+
 //Fonction qui s'occupe des for passés au prompt.
 int handle_for(for_info * f) {
     int result = 0;
@@ -167,83 +229,65 @@ int handle_for(for_info * f) {
     return EXIT_FAILURE;
 }
 
-// Exec commande if. Return 0 si succès, 1 si échec.
+// Fonction d'exécution du if.
 int execute_if(if_info *info) {
-    if (!info || !info -> test || !info -> test -> name) {
+    if (info == NULL || info->test == NULL) {
         fprintf(stderr, "Erreur : if_info mal formé.\n");
         return 1;
     }
-    
-    // Tableau d'arguments alloué dynamiquement
-    char **test_args = malloc(sizeof(char *) * 10); // Taille initiale (agrandie si besoin)
-    if (!test_args) {
-        perror("malloc");
-        return 1;
-    }
-    test_args[0] = "/usr/bin/test"; // commande test
-    int arg_index = 1;
-    char *name = info -> test -> name;
-    int in_quote = 0; // Pour guillemets
-    int start = 0;
-    for (int i = 0; name[i] != '\0'; i++) {
-        if (name[i] == '"' || name[i] == '\'') {
-            in_quote = !in_quote; // Bascule dans ou hors des guillemets
-            continue;
+    if(info->test[0] == '[') {
+        // Si crochets, ancienne logique d'évaluation
+        char *strip_test = strip_brackets(info->test);
+        if (strip_test == NULL) {
+            fprintf(stderr, "Erreur : strip_brackets a échoué.\n");
+            return 1;
         }
-        if (name[i] == ' ' && !in_quote) {
-            name[i] = '\0';
-            test_args[arg_index++] = &name[start];
-            //printf("execute_if | contenu de test_args[%d] :%s\n", arg_index, test_args[arg_index]);
-            start = i + 1;
+        int test_result = evaluate_test(strip_test);
+        free(strip_test);
 
-            if (arg_index % 10 == 0) { // Réallocation si nécessaire
-                test_args = realloc(test_args, sizeof(char *) * (arg_index + 10));
-                if (!test_args) {
-                    perror("realloc");
+        if(test_result == 0) {
+            if (info->cmd_true != NULL) {
+                char *copy_true = malloc(strlen(info->cmd_true) + 1);
+                if (copy_true == NULL) {
                     return 1;
                 }
+                memcpy(copy_true, info->cmd_true, strlen(info->cmd_true) + 1);
+                return handle_line(copy_true);
+            }
+        } else {
+            if (info->cmd_false != NULL) {
+                char *copy_false = malloc(strlen(info->cmd_false) + 1);
+                if (copy_false == NULL) {
+                    return 1;
+                }
+                memcpy(copy_false, info->cmd_false, strlen(info->cmd_false) + 1);
+                return handle_line(copy_false);
             }
         }
+        return test_result;
     }
-    if (name[start] != '\0') {
-        test_args[arg_index++] = &name[start];
-    }
-    test_args[arg_index] = NULL; // NULL-terminer
-
-    pid_t pid = fork();
-    if (pid < 0) {
-        perror("fork");
-        free(test_args);
-        return 1;
-    } else if (pid == 0) {
-        int null = open("/dev/null", O_WRONLY);
-        if (null == 1) {
-            perror("Erreur : /dev/null");
-            exit(1);
+    // Aucun crochets, logique classique
+    int test_result = handle_line(info->test);
+    if (test_result == 0) {
+        if (info->cmd_true != NULL) {
+            char *copy_true = malloc(strlen(info->cmd_true) + 1);
+            if (copy_true == NULL) {
+                return 1;
+            }
+            memcpy(copy_true, info->cmd_true, strlen(info->cmd_true) + 1);
+            return handle_line(copy_true);
         }
-        if (dup2(null, STDERR_FILENO) == -1) {
-            perror("dup2");
-            exit(1);
+    } else {
+        if (info->cmd_false != NULL) {
+            char *copy_false = malloc(strlen(info->cmd_false) + 1);
+            if (copy_false == NULL) {
+                return 1;
+            }
+            memcpy(copy_false, info->cmd_false, strlen(info->cmd_false) + 1);
+            return handle_line(copy_false);
         }
-        close(null);
-        
-        execvp(test_args[0], test_args);
-        perror("execvp");
-        exit(1);
     }
-    int status;
-    if (waitpid(pid, &status, 0) < 0) {
-        perror("waitpid");
-        free(test_args);
-        return 1;
-    }
-    free(test_args);
-    
-    // Test réussi si le code de retour est 0
-    if (WIFEXITED(status)) {
-        return WEXITSTATUS(status);
-    }
-    return 1;
+    return 0;
 }
 
 /** handle_line permet de s'occuper de la ligne donnée en argument.*/
@@ -276,56 +320,73 @@ int handle_line(char * line) {
         }
         cmd -> name[i] = '\0';
 
-        if (handle_redirection(line_cmd, pos) != 0) {
-            result = 1;
-            goto error;
-        }
-
-        if (strcmp(cmd -> name, "") == 0) {
-            result = 0;
-        } else if (strcmp(cmd -> name, "if") == 0) {
-            iinfo = handle_if_line(line);
-            if (iinfo == NULL) {
+        if (cmds[all] -> is_pipeline) {
+            if (handle_redirection(line_cmd, pos) != 0) {
                 result = 1;
                 goto error;
             }
-            int test_result = execute_if(iinfo);
-            if (test_result == 0) {
-                if (iinfo -> cmd_true != NULL) {
-                    result = handle_line(iinfo -> cmd_true);
-                    destroy_cmd_info(iinfo -> test);
-                    iinfo -> test = NULL;
-                    free(iinfo -> cmd_false);
-                    iinfo -> cmd_false = NULL;
-                    free(iinfo);
-                    iinfo = NULL;
-                } else {
-                    result = 1;
-                    goto error;
-                }
-            } else {
-                if (iinfo -> cmd_false != NULL) {
-                    result = handle_line(iinfo -> cmd_false);
-                    destroy_cmd_info(iinfo -> test);
-                    iinfo -> test = NULL;
-                    free(iinfo -> cmd_true);
-                    iinfo -> cmd_true = NULL;
-                    free(iinfo);
-                    iinfo = NULL;
-                } else {
-                    result = 1;
-                    goto error;
-                }
-            } 
-        } else if (strcmp(cmd -> name, "for") != 0) {
             if (line_cmd[pos] != '\0') {
                 memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
                 cmd_format(line_cmd, cmd);
             }
-            result = call_function(cmd);
+
+            if (cmds[all] -> input_fd >= 0) {
+                in_fd = cmds[all] -> input_fd;
+            }
+
+            if (cmds[all + 1] == NULL) {
+                cmds[all] -> is_pipeline = false;
+            }
+
+            result = execute_pipeline(cmd, in_fd, &out_fd, cmds[all]);
+            if (result != 0) {
+                fprintf(stderr, "Erreur d'exécution pour la commande : %s\n", cmds[all]->cmd_line);
+                break;
+            }
+
+            if (in_fd != STDIN_FILENO) {
+                close(in_fd);
+            }
+            in_fd = out_fd;
+            close_redirection();
         } else {
-            if (line_cmd[pos] != '\0') {
-                memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
+            if (strcmp(cmd -> name, "") == 0) {
+                result = 0;
+            } else if (strcmp(cmd -> name, "if") == 0) {
+                iinfo = handle_if_line(line);
+                if (iinfo == NULL) {
+                    result = 1;
+                    goto error;
+                }
+                result = execute_if(iinfo);
+                if(iinfo->test != NULL) {
+                    iinfo->test = NULL;
+                }
+            } else if (strcmp(cmd -> name, "for") != 0) {
+                if (handle_redirection(line_cmd, pos) != 0) {
+                    result = 1;
+                    goto error;
+                }
+                if (line_cmd[pos] != '\0') {
+                    memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
+                    cmd_format(line_cmd, cmd);
+                }
+                result = call_function(cmd);
+                if (result == 130) {
+                    result = 255;
+                    goto error;
+                }
+                close_redirection();
+            } else {
+                if (line_cmd[pos] != '\0') {
+                    memmove(line_cmd, line_cmd + pos + 1, strlen(line_cmd) - pos + 1);
+                }
+                f = handle_for_line(line_cmd);
+                if (f == NULL) {
+                    result = 2;
+                    goto error;
+                }
+                result = handle_for(f);
             }
             f = handle_for_line(line_cmd);
             if (f == NULL) {
@@ -335,18 +396,26 @@ int handle_line(char * line) {
             result = handle_for(f);
         }
 
-        close_redirection();
         if (cmd != NULL) {
             destroy_cmd_info(cmd);
             cmd = NULL;
         }
     }
 
+    if (iinfo != NULL) {
+        destroy_if_info(iinfo);
+        iinfo = NULL;
+    }
+
+    close_redirection();
+    
+    if (in_fd != STDIN_FILENO) {
+        close(in_fd);
+    }
+
     if (cmds != NULL) {
-        for (size_t j = 0; cmds[j] != NULL; j++) {
-            free(cmds[j]);
-        }
-        free(cmds);
+        destroy_cmd(cmds);
+        cmds = NULL;
     }
     free(line);
     return result;
@@ -358,19 +427,22 @@ error:
             cmd = NULL;
         }
     if (cmds != NULL) {
-        for (size_t j = 0; cmds[j] != NULL; j++) {
-            free(cmds[j]);
-        }
-        free(cmds);
+        destroy_cmd(cmds);
+        cmds = NULL;
     }
     free(line);
     if (iinfo != NULL) {
         destroy_if_info(iinfo);
+        iinfo = NULL;
     }
     return result;
 }
 
-char ** handle_cmd(char * line) {
+/*  
+ * Traite la ligne de commande
+ * Sépare la commande en plusieurs commandes si on a une commande structurée ou une pipeline.
+*/
+command ** handle_cmd(char * line) {
     size_t pos = 0, nb_cmd = 0, pos_cmd = 0, for_cmd = 0;
     char ** cmd = calloc(BUFFER_SIZE, sizeof(char *));
     if (cmd == NULL) {
@@ -401,8 +473,27 @@ char ** handle_cmd(char * line) {
             continue;
         }
 
-        if (line[pos] == ';' && for_cmd == 0) { // ?
-            cmd[nb_cmd][pos_cmd] = '\0';
+        // Solution pour le cas de "yes", utilisation de timeout pour stopper le processus
+        if (strcmp(cmd[nb_cmd] -> cmd_line, "yes") == 0) {
+            cmd[nb_cmd] -> cmd_line = strdup("timeout 0.1s yes");
+            if (cmd[nb_cmd] -> cmd_line == NULL) {
+                perror("strdup");
+                for (size_t i = 0; cmd[i] != NULL; i++) {
+                    free(cmd[i] -> cmd_line);
+                    free(cmd[i]);
+                }
+                free(cmd);
+                return NULL;
+            }
+            pos_cmd = pos_cmd + 13;
+        }
+
+        if ((line[pos] == ';' || (line[pos] == '|') && line[pos - 1] != '>') && for_cmd == 0) {
+            if (line[pos] == '|') {
+                cmd[nb_cmd] -> is_pipeline = true;
+                is_pipeline = true;
+            }
+            cmd[nb_cmd] -> cmd_line[pos_cmd] = '\0';
             pos++;
             nb_cmd++;
             pos_cmd = 0;
@@ -481,7 +572,9 @@ int handle_redirection(char * line, size_t i) {
                 redirection_size--;
             }
 
-            while (line[redirection_size] != '\0') { line[redirection_size] = '\0'; redirection_size++; }
+            for (size_t j = redirection_size; j < pos + strlen(redirection_file + strlen(redirection_type) + 1); j++) {
+                line[j] = ' ';
+            }
             break;
         }
         pos++;
@@ -531,10 +624,7 @@ void make_prompt(char * prompt, int var) {
     char * return_value = calloc(BUFFER_SIZE, sizeof(char));
 
     if (var == 255) { 
-        strcat(return_value, "[255]\0");
-
-        //TODO: Remplacer par SIG une fois que c'est demandé.
-        //strcat(return_value, "[SIG]");
+        strcat(return_value, "[SIG]\0");
     } else {
         strcat(return_value, "[");
         if (var == -1) {
@@ -571,6 +661,7 @@ void make_prompt(char * prompt, int var) {
     free(return_value);
 }
 
+//Affiche le prompt, lit la ligne de commande et appelle handle_line.
 int display_prompt(int var) {
     char * line = NULL;
     char * prompt = calloc(BUFFER_SIZE, sizeof(char));
@@ -582,7 +673,7 @@ int display_prompt(int var) {
     }
 
     if (getcwd(prompt, BUFFER_SIZE) == NULL) {
-        perror("display_prompt");
+        perror("display_prompt getcwd");
         last_return = 1;
         goto cleanup;
     }
@@ -614,5 +705,16 @@ int display_prompt(int var) {
 
 int main() {
     rl_outstream = stderr;
+    struct sigaction ignore_term = {0};
+    ignore_term.sa_handler = SIG_IGN;
+    sigemptyset(&ignore_term.sa_mask);
+    if (sigaction(SIGTERM, &ignore_term, NULL) == -1) {
+        perror("fsh SIGTERM.");
+        exit(1);
+    }
+    if (sigaction(SIGINT, &ignore_term, NULL) == -1) {
+        perror("fsh SIGINT.");
+        exit(1);
+    }
     return display_prompt(last_return);
 }
