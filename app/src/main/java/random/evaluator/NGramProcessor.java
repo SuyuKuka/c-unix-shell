@@ -42,23 +42,4 @@ public class NGramProcessor {
         
         return nGrams;
     }
-
-    // Petit main juste pour test le résultat de la récupération des ngrammes en liste
-    public static void main(String[] args) {
-        NGramProcessor processor = new NGramProcessor();
-        
-        try {
-            String filePath = "ressources/ngrams.csv"; // Chemin vers le .csv
-            List<String> nGrams = processor.getNGramsFromCSV(filePath);
-            
-            // Affiche les n-grammes
-            System.out.println("N-Grammes récupérés :");
-            for (String nGram : nGrams) {
-                System.out.print(nGram + " ");
-            }
-        } catch (IOException e) {
-            System.err.println("Erreur lors de la lecture en liste du ngrams.csv : " + e.getMessage());
-        }
-    }
-
 }

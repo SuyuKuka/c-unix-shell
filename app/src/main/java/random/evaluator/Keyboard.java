@@ -3,6 +3,9 @@ package random.evaluator;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import random.evaluator.Movement.Finger;
+import random.evaluator.Movement.Hand;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -10,18 +13,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Keyboard {
-    private ArrayList<String> characters = new ArrayList<String>();
-    private ArrayList<String> finger = new ArrayList<String>();
-    private ArrayList<int[]> positions = new ArrayList<int[]>();
+    private final List<String> characters = new ArrayList<>();
+    private final List<Finger> fingers = new ArrayList<>();
+    private final List<Hand> hands = new ArrayList<>();
+    private final List<Position> positions = new ArrayList<>();
+
 
     /**
      * Reinitialise les listes des caracteres, des doigts et des positions
      * pour pouvoir recommencer a decomposer un autre ngram
      */
     public void reset() {
-        characters = new ArrayList<String>();
-        finger = new ArrayList<String>();
-        positions = new ArrayList<int[]>();
+        characters.clear();
+        fingers.clear();
+        hands.clear();
+        positions.clear();
     }
 
     /**
@@ -166,7 +172,6 @@ public class Keyboard {
             String content = new String(Files.readAllBytes(Paths.get(filePath)));
             JSONObject keyboardJson = new JSONObject(content);
             JSONObject keyboard = keyboardJson.getJSONObject("keyboard");
-            System.out.println("Clavier : " + keyboard.getString("layout_name"));
             JSONArray rows = keyboard.getJSONArray("rows");
 
             for (String ngramElement : ngram) {
@@ -186,7 +191,7 @@ public class Keyboard {
                     if (found) break;
                 }
                 if (!found) {
-                    System.out.println("Caractère " + ngramElement + " non trouvé sur le clavier.");
+                    throw new KeyNotFoundException(ngramElement);
                 }
             }
         } catch (IOException e) {
@@ -201,14 +206,57 @@ public class Keyboard {
      * pour chaque caractere. Affiche ces informations sur le terminal.
      */
     private void collectKeyInfo(JSONObject key, String ngramElement) {
-        // System.out.println("Caractère : " + ngramElement);
-        // System.out.println("Position : " + key.getJSONArray("position"));
-        // System.out.println("Finger : " + key.getString("finger"));
-        // System.out.println("Shift : " + key.optString("shift", "N/A"));
-        // System.out.println("AltGr : " + key.optString("altgr", "N/A"));
-        // System.out.println("--------------------");
-        finger.add(key.getString("finger"));
-        positions.add(toIntArray(key.getJSONArray("position")));
+        String data[] = split(key.getString("finger"));
+        fingers.add(getStringToFinger(data[0]));
+        hands.add(getStringToHand(data[1]));
+        positions.add(jsonArrayToPosition(key.getJSONArray("position")));
+    }
+
+    /**
+     * @param finger 
+     * @return le doigt correspondant en enum Finger
+     */
+    private Finger getStringToFinger(String finger) {
+        switch (finger) {
+            case "PINKY":
+                return Finger.PINKY;
+            case "RING":
+                return Finger.RING;
+            case "MIDDLE":
+                return Finger.MIDDLE;
+            case "INDEX":
+                return Finger.INDEX;
+            case "THUMB":
+                return Finger.THUMB;
+            default :
+                return null;
+        }
+    }
+
+    /**
+     * @param hand
+     * @return la main correspondante en enum Hand
+     */
+    private Hand getStringToHand(String hand) {
+        switch (hand) {
+            case "LEFT":
+                return Hand.LEFT;
+            case "RIGHT":
+                return Hand.RIGHT;
+            default :
+                return Hand.LEFT;
+        }
+    }
+    
+    /**
+     * @param fingerUsed
+     * @return un tableau de 2 string, le premier élément est le doigt (en minuscule), le deuxième élément est la main (en minuscule)
+     */
+    private String[] split(String fingerUsed) {
+        String[] st = fingerUsed.split("_");
+        st[0] = st [0].toUpperCase();
+        st[1] = st[1].toUpperCase();
+        return st;
     }
 
     /**
@@ -216,19 +264,17 @@ public class Keyboard {
      * @return un tableau d'entiers
      * Convertit un tableau JSON en un tableau d'entiers
      */
-    private int[] toIntArray(JSONArray array) {
-        int[] result = new int[array.length()];
-        for (int i = 0; i < array.length(); i++) {
-            result[i] = array.getInt(i);
-        }
-        return result;
+    private Position jsonArrayToPosition(JSONArray array) {
+        int rowIndex = array.getInt(0);
+        int columnIndex = array.getInt(1);
+        return new Position(rowIndex, columnIndex);
     }
 
     /**
      * @return la liste des caracteres correspondants a chaque ngram
      * La i-eme position correspond au i-eme ngram de la liste des ngrams
      */
-    public ArrayList<String> getCharacters() {
+    public List<String> getCharacters() {
         return characters;
     }
     
@@ -236,9 +282,16 @@ public class Keyboard {
      * @return la liste des doigts correspondants a chaque caractere
      * La i-eme position correspond au i-eme caractere de la liste des caracteres
      */
+    public List<Finger> getFingers() {
+        return fingers;
+    }
 
-    public ArrayList<String> getFinger() {
-        return finger;
+    /**
+     * @return la liste des mains correspondantes a chaque caractere
+     * La i-eme position correspond au i-eme caractere de la liste des caracteres
+     */
+    public List<Hand> getHands() {
+        return hands;
     }
 
     /**
@@ -246,7 +299,15 @@ public class Keyboard {
      * La i-eme position correspond au i-eme caractere de la liste des caracteres
      * Les positions sont au format [row_index, column_index]
      */
-    public ArrayList<int[]> getPositions() {
+    public List<Position> getPositions() {
         return positions;
     }
+
+    private class KeyNotFoundException extends RuntimeException {
+        public KeyNotFoundException(String key) {
+            super("Caractère " + key + " non trouvé sur le clavier.");
+        }
+    }
+
+    public record Position(int row, int column) {}
 }

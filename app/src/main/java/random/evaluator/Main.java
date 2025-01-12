@@ -13,7 +13,8 @@ public class Main {
             List<String> nGrams = processor.getNGramsFromCSV(filePath);
 
             Movement movement = new Movement(nGrams);
-            System.out.println("Score : " + movement.getTotalScore() + "/100");
+            movement.evaluator();
+            System.out.println("(Fin du Logiciel 2) Au revoir !");
         } catch (IOException e) {
             System.err.println("Erreur lors de la lecture en liste du ngrams.csv : " + e.getMessage());
         }
