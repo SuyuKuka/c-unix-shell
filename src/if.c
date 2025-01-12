@@ -159,6 +159,7 @@ if_info * handle_if_line(char *line) {
         goto error;
     }
 
+    free(info->test);
     info->test = malloc(strlen(condition) + 1);
     if (info->test == NULL) {
         free(condition);
@@ -177,6 +178,7 @@ if_info * handle_if_line(char *line) {
     }
     tmp = trim(tmp);
     //printf("handle_if_line post trim| tmp de cmd_true :%s|\n", tmp);
+    free(info->cmd_true);
     info->cmd_true = malloc(strlen(tmp) + 1);
     if (info->cmd_true == NULL) {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
@@ -215,6 +217,7 @@ if_info * handle_if_line(char *line) {
             goto error;
         }
 
+        free(info->cmd_false);
         info->cmd_false = malloc(strlen(tmp) + 1);
         if (info->cmd_false == NULL) {
             write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
