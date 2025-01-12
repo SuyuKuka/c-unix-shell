@@ -26,8 +26,7 @@ if_info * if_info_init() {
 void destroy_if_info(if_info *info) {
     if (info != NULL) {
         if (info -> test != NULL) {
-            //printf("destroy_if_info | clear info->test;\n");
-            free(info -> test);
+            destroy_cmd_info(info -> test);
             info -> test = NULL;
         }
         if (info -> cmd_true != NULL) {
@@ -42,79 +41,99 @@ void destroy_if_info(if_info *info) {
     }
 }
 
+char *strip_brackets(char *condition) {
+    if (!condition) return NULL;
 
-int evaluate_test(char *condition) {
-    if(condition == NULL) return 1;
-        char **test_args = malloc(sizeof(char *) * 10); // Taille initiale (dynamique, agrandie si besoin)
-        if (test_args == NULL) {
-            perror("malloc");
-            return 1;
-        }
-        test_args[0] = "/usr/bin/test"; // commande test
-        int arg_index = 1;
-        char *name = condition;
-        int in_quote = 0;
-        int start = 0;
+    size_t len = strlen(condition);
+    size_t start = 0, end = len - 1;
 
-        // Rempli le tableau test_args contenant les informations de la condition à évaluer.
-        for (int i = 0; name[i] != '\0'; i++) {
-            if (name[i] == '"' || name[i] == '\'') {
-                in_quote = !in_quote;
-                continue;
+    // Retire les crochets & espaces autour
+    while (start < len && (condition[start] == '[' || isspace((unsigned char)condition[start]))) start++;
+    while (end > start && (condition[end] == ']' || isspace((unsigned char)condition[end]))) end--;
+
+    size_t new_len = end - start + 1;
+    char *clean_condition = malloc(new_len + 1);
+    if (!clean_condition) {
+        perror("malloc");
+        return NULL;
+    }
+
+    memcpy(clean_condition, condition + start, new_len);
+    clean_condition[new_len] = '\0';
+    free(condition);
+    return clean_condition;
+}
+
+char *custom_strndup(const char *src, size_t n) {
+    if (src == NULL) return NULL;
+
+    size_t len = strnlen(src, n); // Trouve la longueur de la chaîne jusqu'à n caractères, droit à strnlen ?
+    char *dest = malloc(len + 1); // Alloue mémoire aussi pour '\0'
+    if (dest == NULL) {
+        goto error;
+    }
+    memcpy(dest, src, len);       // Copie les 'len' caractères
+    dest[len] = '\0';             // Termine la chaîne par un '\0'
+
+    return dest;
+
+    error:
+    free(dest);
+    return NULL;
+}
+
+/*
+* Extrait un bloc de texte entre accolades imbriquées.
+*/
+char *extract_block(const char *line, int *start) {
+    int i = *start;
+    int len = 0;
+    int brace_count = 0;
+    char *block = NULL;
+
+    while (line[i] != '\0' && line[i] != '{') { // Parcours jusqu'à 1ère accolade ouvrante '{'
+        i++;
+    }
+    if (line[i] != '{') {
+        write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
+        return NULL;
+    }
+    // Début du bloc après l'accolade ouvrante
+    int block_start = i + 1; 
+    brace_count++;
+    // Parcours du texte pour trouver la fin du bloc
+    for (i = block_start; line[i] != '\0'; i++) {
+        if (line[i] == '{') {
+            brace_count++; // Nouvelle accolade ouvrante
+        } else if (line[i] == '}') {
+            brace_count--; // Accolade fermante
+            if (brace_count == 0) {
+                break; // Fin du bloc trouvée
             }
-            if (name[i] == ' ' && !in_quote) {
-                name[i] = '\0';
-                test_args[arg_index++] = &name[start];
-                start = i + 1;
+        }
+    }
 
-                if (arg_index % 10 == 0) { // Réallocation si nécessaire
-                    test_args = realloc(test_args, sizeof(char *) * (arg_index + 10));
-                    if (test_args == NULL) {
-                        perror("realloc");
-                        return 1;
-                    }
-                }
-            }
-        }
-        if (name[start] != '\0') {
-            test_args[arg_index++] = &name[start];
-        }
-        test_args[arg_index] = NULL; // NULL-termine
-
-        // Exécution du test
-        pid_t pid = fork();
-        if (pid < 0) {
-            perror("fork");
-            free(test_args);
-            return 1;
-        } else if (pid == 0) {
-            int null = open("/dev/null", O_WRONLY);
-            if (null == 1) {
-                perror("Erreur : /dev/null");
-                exit(1);
-            }
-            if (dup2(null, STDERR_FILENO) == -1) {
-                perror("dup2");
-                exit(1);
-            }
-            close(null);
-            
-            execvp(test_args[0], test_args);
-            perror("execvp");
-            exit(1);
-        }
-        int status;
-        if (waitpid(pid, &status, 0) < 0) {
-            perror("waitpid");
-            free(test_args);
-            return 1;
-        }
-        free(test_args);
-
-        if (WIFEXITED(status)) {    // Test réussi si le code de retour est 0, échec sinon.
-            return WEXITSTATUS(status);
-        }
-        return 1;
+    // Check si on a trouvé une accolade fermante
+    if (brace_count != 0) {
+        write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
+        return NULL;
+    }
+    // Calcule la longueur du bloc
+    len = i - block_start;
+    block = malloc(len + 1);    // Alloue la mémoire pour le bloc extrait
+    if (block == NULL) {
+        perror("malloc");
+        free(block);
+        return NULL;
+    }
+    // Copier manuellement le contenu dans le tableau alloué
+    for (int j = 0; j < len; j++) {
+        block[j] = line[block_start + j];
+    }
+    block[len] = '\0'; // Terminer la chaîne par '\0'
+    // Maj de la position de départ pour le prochain traitement
+    *start = i + 1; // Ignorer l'accolade fermante
+    return block;
 }
 
 
@@ -127,14 +146,14 @@ if_info * handle_if_line(char *line) {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
         return NULL;
     }
-    if_info * info = if_info_init();
+    if_info * info = if_info_init(); // Initialise la struct
     if (info == NULL) {
         perror("if_info_init");
         return NULL;
     }
     char *cursor = line;
 
-    // 1. Vérification de la syntaxe : mot-clé "if"
+    // 1. Vérification de la syntaxe : mot-clé "if", useless vu fonctionnement fsh ?
     while (*cursor != '\0' && isspace((unsigned char)*cursor)) cursor++; // Skip espaces
     if (strncmp(cursor, "if", 2) != 0 || !isspace(cursor[2])) {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
@@ -143,7 +162,7 @@ if_info * handle_if_line(char *line) {
     cursor += 2; // Skip "if"
 
     // 2. Extraction de la condition (jusqu'à '{')
-    while (isspace((unsigned char)*cursor)) cursor++;
+    while (isspace((unsigned char)*cursor)) cursor++; // Skip espaces
     char * condition_start = cursor;
     while (*cursor != '\0' && *cursor != '{') cursor++;
     if (*cursor != '{') {
@@ -157,38 +176,35 @@ if_info * handle_if_line(char *line) {
         goto error;
     }
 
-    free(info->test);
-    info->test = malloc(strlen(condition) + 1);
-    if (info->test == NULL) {
-        free(condition);
+    condition = strip_brackets(condition);
+    cmd_info * new_cmd = malloc(sizeof(cmd_info));
+    if (new_cmd == NULL) {
+        perror("malloc");
         goto error;
     }
-    memcpy(info->test, condition, strlen(condition) + 1);
+    char * new_name = malloc(strlen(condition) + 1);  // Alloue mémoire pour copie
+    if (new_name == NULL) {
+        perror("malloc");
+        goto error;
+    }
+    memcpy(new_name, condition, strlen(condition) + 1);  // Copie de la condition
+    new_cmd -> name = new_name;  // chaîne stockée dans 'name'
+    new_cmd -> opt = NULL;
+    new_cmd -> args = NULL;
+    info -> test = new_cmd; // Transforme la condition en commande
     free(condition);
 
     // 3. Extraction de cmd_true (jusqu'à '}')
     while (isspace((unsigned char) * cursor)) cursor++;
     int start = cursor - line; // Position actuelle
     char * tmp = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
-    if (tmp == NULL) {
-        goto error;
-    }
-    
-    char * tmp2 = trim(tmp);
-    free(info->cmd_true);
-    info->cmd_true = malloc(strlen(tmp2) + 1);
-    if (info->cmd_true == NULL) {
-        write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
-        goto error;
-    }
-    memcpy(info->cmd_true, tmp2, strlen(tmp2) + 1);
+    memmove(info -> cmd_true, tmp, strlen(tmp) + 1);
     free(tmp);
-    free(tmp2);
-    if (info->cmd_true == NULL) {
+    if (info -> cmd_true == NULL) {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
         goto error;
     }
-    cursor = line + start;
+    cursor = line + start; // Maj curseur après le bloc cmd_true
 
     // 4. Vérification & extraction de cmd_false si "else" présent
     while (isspace((unsigned char) * cursor)) cursor++;
@@ -202,32 +218,22 @@ if_info * handle_if_line(char *line) {
 
         start = cursor - line;
         char * tmp = extract_block(line, &start); // Utilise extract_block avec pointeur sur {
-        if (tmp == NULL) {
-            goto error;
-        }
-
-        free(info->cmd_false);
-        info->cmd_false = malloc(strlen(tmp) + 1);
-        if (info->cmd_false == NULL) {
-            write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
-            goto error;
-        }
-        memcpy(info->cmd_false, tmp, strlen(tmp) + 1);
+        memmove(info -> cmd_false, tmp, strlen(tmp) + 1);
         free(tmp);
-        if (info->cmd_false == NULL) {
+        if (info -> cmd_false == NULL) {
             write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
             goto error;
         }
-        cursor = line + start;
+        cursor = line + start; // Maj curseur après le bloc cmd_false
     }
     return info;
 
     error:
-    if (tmp != NULL) free(tmp);
     if (condition != NULL) free(condition);
-    if (info != NULL) {
-        destroy_if_info(info);
-        info = NULL;
+    if (new_cmd != NULL) {
+        if (new_cmd -> name != NULL) free(new_cmd -> name);
+        free(new_cmd);
     }
+    destroy_if_info(info);
     return NULL;
 }
