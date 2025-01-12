@@ -176,17 +176,19 @@ if_info * handle_if_line(char *line) {
     if (tmp == NULL) {
         goto error;
     }
-    tmp = trim(tmp);
+    
+    char * tmp2 = trim(tmp);
     //printf("handle_if_line post trim| tmp de cmd_true :%s|\n", tmp);
     free(info->cmd_true);
-    info->cmd_true = malloc(strlen(tmp) + 1);
+    info->cmd_true = malloc(strlen(tmp2) + 1);
     if (info->cmd_true == NULL) {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
         goto error;
     }
-    memcpy(info->cmd_true, tmp, strlen(tmp) + 1);
+    memcpy(info->cmd_true, tmp2, strlen(tmp2) + 1);
     //printf("handle_if_line | contenu info->cmd_true :%s\n", info->cmd_true);
     free(tmp);
+    free(tmp2);
     if (info->cmd_true == NULL) {
         write(STDERR_FILENO, SYNTAX_ERR, strlen(SYNTAX_ERR));
         goto error;
