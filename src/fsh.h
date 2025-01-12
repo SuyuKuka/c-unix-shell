@@ -36,19 +36,24 @@ typedef struct {
 } command;
 
 int call_function (cmd_info *);
+void destroy_cmd(command **);
+
+int exec_for_cmd(for_info *, char *, int);
 int execute_pipeline(cmd_info *, int, int *, command *);
+
+int handle_for(for_info *);
+int handle_for_dep(for_info *, struct stat, char *, char *, int);
+int handle_redirection(char *, size_t);
+
 int handle_line(char *);
 command ** handle_cmd(char *);
-void destroy_cmd(command **);
-int handle_redirection(char *, size_t);
+
 void color_prompt(char *, int);
 void make_prompt(char *, int);
 int display_prompt(int);
+
 int fsh_exit(cmd_info *);
 int exec_for(for_info *);
 int for_no_opt(cmd_info *);
-int handle_for(for_info *);
-int handle_for_dep(for_info *, struct stat, char *, char *, int);
-int exec_for_cmd(for_info *, char *, int);
 
 #endif

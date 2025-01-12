@@ -198,9 +198,9 @@ void wait_for_remaining_processes() {
         pid_t pid = waitpid(-1, &status, 0);
         if (pid > 0) {
             active_processes--;
-            if (WIFEXITED(status)) {  // Si le process s'est terminé normalement
+            if (WIFEXITED(status)) {  // Si le processus s'est terminé normalement
                 int exit_code = WEXITSTATUS(status);
-                if (exit_code > global_result) {    // Agrège la val max de retour
+                if (exit_code > global_result) {
                     global_result = exit_code;
                 }
             }
@@ -281,7 +281,8 @@ int execute_if(if_info *info) {
         fprintf(stderr, "Erreur : if_info mal formé.\n");
         return 1;
     }
-    if(info->test[0] == '[') {  // Si crochets, ancienne logique d'évaluation
+    if(info->test[0] == '[') {
+        // Si crochets, ancienne logique d'évaluation
         char *strip_test = strip_brackets(info->test);
         if (strip_test == NULL) {
             fprintf(stderr, "Erreur : strip_brackets a échoué.\n");
@@ -292,7 +293,6 @@ int execute_if(if_info *info) {
 
         if(test_result == 0) {
             if (info->cmd_true != NULL) {
-                //printf("execute_if | exécution de cmd_true : %s\n", info->cmd_true);
                 char *copy_true = malloc(strlen(info->cmd_true) + 1);
                 if (copy_true == NULL) {
                     return 1;
@@ -301,8 +301,7 @@ int execute_if(if_info *info) {
                 return handle_line(copy_true);
             }
         } else {
-            if (info->cmd_false != NULL) { // si pas de cmd, il y a quand même espace donc va dans le bloc, pb ?
-                //printf("execute_if | exécution de cmd_false : %s\n", info->cmd_false);
+            if (info->cmd_false != NULL) {
                 char *copy_false = malloc(strlen(info->cmd_false) + 1);
                 if (copy_false == NULL) {
                     return 1;
@@ -317,7 +316,6 @@ int execute_if(if_info *info) {
     int test_result = handle_line(info->test);
     if (test_result == 0) {
         if (info->cmd_true != NULL) {
-            //printf("execute_if | exécution de cmd_true : %s\n", info->cmd_true);
             char *copy_true = malloc(strlen(info->cmd_true) + 1);
             if (copy_true == NULL) {
                 return 1;
@@ -326,8 +324,7 @@ int execute_if(if_info *info) {
             return handle_line(copy_true);
         }
     } else {
-        if (info->cmd_false != NULL) {  // même que cas avec crochets ?
-            //printf("execute_if | exécution de cmd_false : %s\n", info->cmd_false);
+        if (info->cmd_false != NULL) {
             char *copy_false = malloc(strlen(info->cmd_false) + 1);
             if (copy_false == NULL) {
                 return 1;
@@ -482,91 +479,6 @@ int handle_line(char * line) {
                 if(iinfo->test != NULL) {
                     iinfo->test = NULL;
                 }
-                /*
-                if (result == 0) {
-                    if (iinfo -> cmd_true != NULL) {
-                        if (handle_redirection(iinfo -> cmd_true, 0) != 0) {
-                            result = 1;
-                            goto error;
-                        }
-                        //result = handle_line(iinfo -> cmd_true);
-                        close_redirection();
-                        free(iinfo -> cmd_false);
-                        iinfo -> cmd_false = NULL;
-                        free(iinfo);
-                        iinfo = NULL;
-                    } else {
-                        result = 1;
-                        goto error;
-                    }
-                } else {
-                    if (iinfo -> cmd_false != NULL) {
-                        if (handle_redirection(iinfo -> cmd_false, 0) != 0) {
-                            result = 1;
-                            goto error;
-                        }
-                        //result = handle_line(iinfo -> cmd_false);
-                        close_redirection();
-                        free(iinfo -> cmd_true);
-                        iinfo -> cmd_true = NULL;
-                        free(iinfo);
-                        iinfo = NULL;
-                    } else {
-                        result = 1;
-                        goto error;
-                    }
-                } */
-                /*if(iinfo->cmd_true != NULL) {
-                    iinfo->cmd_true = NULL;
-                }
-                if(iinfo->cmd_false != NULL) {
-                    iinfo->cmd_false = NULL;
-                }*/
-                //printf("handle_line | contenu de iinfo_true post bled :%s\n", iinfo->cmd_true);   // pour pb du free de cmd_true, pointeur de line ?
-                /* Libération de la mémoire de if_info après exécution
-                printf("handle_line | appel de destroyifinfo\n");
-                destroy_if_info(iinfo);
-                printf("handle_line | appel du destroy fini\n");
-                iinfo = NULL; */
-
-                /*
-                if (test_result == 0) {
-                    if (iinfo -> cmd_true != NULL) {
-                        if (handle_redirection(iinfo -> cmd_true, 0) != 0) {
-                            result = 1;
-                            goto error;
-                        }
-                        result = handle_line(iinfo -> cmd_true);
-                        close_redirection();
-                        destroy_cmd_info(iinfo -> test);
-                        iinfo -> test = NULL;
-                        free(iinfo -> cmd_false);
-                        iinfo -> cmd_false = NULL;
-                        free(iinfo);
-                        iinfo = NULL;
-                    } else {
-                        result = 1;
-                        goto error;
-                    }
-                } else {
-                    if (iinfo -> cmd_false != NULL) {
-                        if (handle_redirection(iinfo -> cmd_false, 0) != 0) {
-                            result = 1;
-                            goto error;
-                        }
-                        result = handle_line(iinfo -> cmd_false);
-                        close_redirection();
-                        destroy_cmd_info(iinfo -> test);
-                        iinfo -> test = NULL;
-                        free(iinfo -> cmd_true);
-                        iinfo -> cmd_true = NULL;
-                        free(iinfo);
-                        iinfo = NULL;
-                    } else {
-                        result = 1;
-                        goto error;
-                    }
-                } */
             } else if (strcmp(cmd -> name, "for") != 0) {
                 if (handle_redirection(line_cmd, pos) != 0) {
                     result = 1;
