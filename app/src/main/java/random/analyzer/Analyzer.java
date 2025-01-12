@@ -7,6 +7,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -20,14 +22,28 @@ public class Analyzer {
     private final List<String> inputFiles;
     private final Map<String, Integer> nGramMap = new ConcurrentHashMap<>(); // n-grammes
 
-    // Constructeur + lance directement l'analyzer
+    /**
+     * Constructeur + lance directement l'analyzer
+     * @param inputFiles
+     */
     public Analyzer(List<String> inputFiles) {
         this.inputFiles = List.copyOf(inputFiles);
         run();
     }
 
+    /**
+     * Gestion correcte du chemin donné comme dans le main.
+     * @param relativePath
+     * @return le chemin utilisable.
+     */
+    private static Path getWorkingDirectoryPath(String relativePath) {
+        return Paths.get(System.getProperty("user.dir")).resolve(relativePath);
+    }
 
-    // Méthode principale qui run le logiciel 1.
+
+    /**
+     * Méthode principale qui run le logiciel 1.
+     */
     private void run() {
         final Set<String> allInputFiles = new LinkedHashSet<>(inputFiles);
 
@@ -47,26 +63,25 @@ public class Analyzer {
         }
         // Export des n-grammes une fois que tous les threads soient terminés
         try {
-            exportNGramsToCSV(".\\ressources.\\ngrams.csv");
+            exportNGramsToCSV(getWorkingDirectoryPath("ressources/ngrams.csv").toString());
         } catch (IOException e) {
             System.err.println("Une erreur est survenue lors de l'exportation des n-grammes : " + e.getMessage());
         }
     }
 
-    /* 
-    * Parse le fichier 'inputFile' puis crée son fichier csv.
-    * Cheminement : fichier.txt input -> String -> Map -> fichier.txt output
-    */
+
+    /**
+     * Parse le fichier 'inputFile' puis crée son fichier csv.
+     * Cheminement : fichier.txt input -> String -> Map -> fichier.txt output
+     * @param inputFile
+     */
     private void fileParser(String inputFile) {
         try {   // Vérification des contrats
             verifyInputFileExists(inputFile);   // Étape 1
-            System.out.println("Etape 1 faite...");
 
             final String outputFile = changeFileExtensionToCSV(inputFile);  // Étape 2
-            System.out.println("Etape 2 faite...");
            
             final String content = Parser.parse(inputFile);     // Étape 3, fichier.txt input -> String
-            System.out.println("Etape 3 faite..."); // Ajouter print du string post-parse pour vérifier l'état du texte ?
 
             final Map<Character, MutableInt> charCountMap = mapStringContent(content);      // Étape 4 : String -> HashMap
             // Comptage des caractères & Gestion des n-grammes
@@ -79,7 +94,6 @@ public class Analyzer {
             }
             localNGramMap.forEach((key, value) -> nGramMap.merge(key, value, Integer::sum));    // Fusionne les résultats des n-grammes localement calculés dans la map globale
 
-            System.out.println("Etape 4 faite, j'appelle fromMapToCSV !");
             fromMapToCSV(charCountMap, outputFile);      // Étape finale, HashMap -> fichier.txt output (csv)
         } catch (FileNotFoundException e) {
             System.err.println("Erreur : le fichier " + e.getMessage() + " n'existe pas. ");
@@ -89,14 +103,21 @@ public class Analyzer {
     }
 
 
-    // Renvoie une FileNotFoundException si le path vers le fichier inputFile ne trouve rien.
+    /**
+     * Renvoie une FileNotFoundException si le path vers le fichier inputFile ne trouve rien.
+     * @param inputFile
+     * @throws FileNotFoundException
+     * */
     private void verifyInputFileExists(String inputFile) throws FileNotFoundException {
         if (!new File(inputFile).exists()) {
             throw new FileNotFoundException(inputFile);
         }
     }
 
-    // Renvoie une map créée en comptant les occcurences de tous les caractères du 'content' donné.
+    /**
+     * @param content
+     * @return map créée en comptant les occcurences de tous les caractères du 'content' donné.
+     */
     private Map<Character, MutableInt> mapStringContent(String content) {
         final Map<Character, MutableInt> map = new LinkedHashMap<>();
         for (int i = 0; i < content.length(); i++) {
@@ -111,7 +132,10 @@ public class Analyzer {
         return map;
     }
 
-    // Renvoie le path d'un fichier en ayant changé son extension en csv.
+    /**
+     * @param filePath
+     * @return le path d'un fichier en ayant changé son extension en csv.
+     */
     private static String changeFileExtensionToCSV(String filePath) {
         final int dotIndex = filePath.lastIndexOf('.');
         if(dotIndex == -1) {
@@ -122,13 +146,19 @@ public class Analyzer {
 
 
 
-    // Création du fichier 'outputFile' (format .csv) à partir de la map donnée.
+    /**
+     * Création du fichier 'outputFile' (format .csv) à partir de la map donnée.
+     * @param map
+     * @param outputFile
+     * @throws SecurityException
+     * @throws IOException
+     */
     private void fromMapToCSV(Map<Character, MutableInt> map, String outputFile) throws SecurityException, IOException {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFile), StandardCharsets.UTF_8))) {
             final long totalOccurences = map.values().stream().mapToInt(MutableInt::get).sum();
-            writer.write("caractère;nb_occurence;fréquence\n");
+            writer.write("caractere;nb_occurence;frequence\n");
 
-            // Trier les entrées par nb_occurence décroissant, puis par caractère (lexicographiquement) en cas d'égalité
+            // Trie les entrées par nb_occurence décroissant, puis par caractère (lexicographiquement) en cas d'égalité
             map.entrySet().stream().sorted((e1, e2) -> {
                 int countComparison = Integer.compare(e2.getValue().get(), e1.getValue().get()); // Compare par nb_occurences
                 return countComparison != 0 ? countComparison : e1.getKey().compareTo(e2.getKey()); // Ensuite compare lexicographiquement
@@ -155,7 +185,11 @@ public class Analyzer {
 
     /* Gestion des n-grammes dans l'analyseur. */
 
-    // Génération du fichier 'ngrammes.csv' à partir du contenu de 'outputFile'.
+    /**
+     * Génération du fichier 'ngrammes.csv' à partir du contenu de 'outputFile'.
+     * @param outputFile
+     * @throws IOException
+     */
     private void exportNGramsToCSV(String outputFile) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFile), StandardCharsets.UTF_8))) {
             writer.write("n-gramme;nb_occurrence\n");
@@ -175,34 +209,18 @@ public class Analyzer {
                     System.err.println("Une erreur est survenue lors de l'écriture des n-grammes dans un fichier CSV : " + e.getMessage());
                 }
             });
-            System.out.println("Exportation des n-grammes réussie dans " + outputFile);
-        } catch (IOException e) {   // Sauvegarder dans un fichier temporaire, non nécessaire ?
-            String tempFile = ".\\ressources.\\ngrams_temp_" + System.currentTimeMillis() + ".csv";
-            try (BufferedWriter tempWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tempFile), StandardCharsets.UTF_8))) {
-                tempWriter.write("n-gramme;nb_occurrence\n");
-                
-                nGramMap.entrySet().stream().sorted((e1, e2) -> {
-                    int lengthComparison = Integer.compare(e1.getKey().length(), e2.getKey().length());
-                    if (lengthComparison != 0) { return lengthComparison; }
-                    int countComparison = Integer.compare(e2.getValue(), e1.getValue());
-                    if (countComparison != 0) { return countComparison; }
-                    return e1.getKey().compareTo(e2.getKey());
-                    }).forEach(entry -> {
-                        try {
-                            tempWriter.write(entry.getKey() + ";" + entry.getValue() + "\n");
-                        } catch (IOException tempEx) {
-                            System.out.println("Erreur critique : une erreur est survenue lors de la création du fichier temporaire. " + tempEx.getMessage());
-                        }
-                    });
-                System.err.println("Une erreur est survenue lors de l'écriture du fichier CSV principal. Les résultats ont été sauvegardés dans un fichier temporaire : " + tempFile);
-            } catch (IOException tempEx) {
-                System.err.println("Erreur critique : impossibilité de sauvegarder les résultats dans un fichier temporaire. " + tempEx.getMessage());
-            }
-            throw e; // Rethrow l'exception pour signaler l'échec, causerait pb par rapport au sujet ?
+            System.out.println("Exportation des n-grammes ici : " + outputFile);
+        } catch (IOException e) {
+            System.err.println("Une erreur est survenue lors de l'écriture du fichier CSV principal : " + e.getMessage());
         }
     }
 
-    // Gestion des n-grammes dans la ligne puis fusion pour parallélisme
+    /**
+     * Gestion des n-grammes dans la ligne puis fusion pour parallélisme.
+     * @param n
+     * @param line
+     * @param map
+     */
     private void addNGram(int n, String line, Map<String, Integer> map) {
         if (line.length() < n) return; // Ne rien faire si la ligne est trop courte pour le n-gramme
         for (int i = 0; i <= line.length() - n; i++) {
@@ -213,7 +231,9 @@ public class Analyzer {
 
 
 
-    // Classe pour utiliser les int de manière + dynamique, peut faire sans ?
+    /**
+     * Classe pour utiliser les int de manière + dynamique.
+     */
     private static final class MutableInt {
         private int value = 1;
 
