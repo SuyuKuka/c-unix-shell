@@ -150,7 +150,6 @@ char ** split(cmd_info * cmd, int * size) {
 }
 
 int externalcmd(cmd_info *cmd) {
-    //printf("externalcmd | cmd_info :%s\n", cmd->name);
     pid_t pid = fork();
     if (pid == -1) {
         write(STDERR_FILENO, "Error with fork: problem creating a child process\n", 45);
@@ -167,7 +166,6 @@ int externalcmd(cmd_info *cmd) {
             free(size);
             _exit(1);
         }
-        //printf("externalcmd | log pour cmd_split[0] :%s\n", cmd_split[0]);
         if (execvp(cmd_split[0], cmd_split) == -1) {
             perror("execvp");
             destroy_split(cmd_split, size);
@@ -178,7 +176,6 @@ int externalcmd(cmd_info *cmd) {
         destroy_split(cmd_split, size);
         free(size);
     } else {
-        //printf("externalcmd | dans else à la fin\n");
         int status;
         waitpid(pid, &status, 0);
         //Vérification du status à la sortie du processus fils.
@@ -192,7 +189,6 @@ int externalcmd(cmd_info *cmd) {
             return 255;
         } else if (WIFEXITED(status)) {
             int exit_status = WEXITSTATUS(status);
-            //printf("externalcmd | valeur de exit_status :%d\n", exit_status);
             if (exit_status != 0) {
                 return exit_status;
             }
@@ -200,33 +196,3 @@ int externalcmd(cmd_info *cmd) {
     }
     return 0;
 }
-
-/*int new_exec(cmd_info *cmd) {
-    pid_t pid = fork();
-    switch(pid) {
-        case -1:
-            return EXIT_FAILURE;
-        case 0:
-            // Déclaration début
-            char ** cmd_split = NULL;
-            int * size = NULL;
-            
-            size = calloc(1, sizeof(int));
-            if(size == NULL) {return 1;}        
-            cmd_split = split(cmd, size);
-            if  (cmd_split == NULL) {
-                free(size);
-                _exit(1);
-            }
-
-            execvp(cmd_split[0], cmd_split);
-            perror(cmd_split[0]);
-            // ?
-            exit(EXIT_FAILURE);
-        
-        case default:
-            int result = wait_process();
-            return result < 0 ? EXIT_FAILURE : result;
-    }
-} */
-

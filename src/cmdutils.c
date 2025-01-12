@@ -1,5 +1,6 @@
 #include "cmdutils.h"
 
+// Nettoyage des espaces superflus autour d'une chaîne 'str'.
 char *trim(char *str) {
     if (!str) return NULL;
     const char *start = str;
@@ -7,16 +8,17 @@ char *trim(char *str) {
     const char *end = start + strlen(start);
     while (end > start && isspace((unsigned char)*(end - 1))) end--;
     size_t len = end - start;
-    char *trimmed = malloc(len + 1);    // Alloue une nouvelle chaîne "trimmed"
+    char *trimmed = malloc(len + 1);
     if (!trimmed) {
         perror("malloc");
         return NULL;
     }
     memcpy(trimmed, start, len);
     trimmed[len] = '\0';
-    return trimmed;  // Return pointeur vers trimmed
+    return trimmed;
 }
 
+// Nettoyage des crochets autour d'une chaîne 'condition'.
 char *strip_brackets(char *condition) {
     if (condition == NULL) return NULL;
 
@@ -43,8 +45,8 @@ char *strip_brackets(char *condition) {
 char *custom_strndup(const char *src, size_t n) {
     if (src == NULL) return NULL;
 
-    size_t len = strnlen(src, n); // Trouve la longueur de la chaîne jusqu'à n caractères, droit à strnlen ?
-    char *dest = malloc(len + 1); // Alloue mémoire aussi pour '\0'
+    size_t len = strnlen(src, n); // Trouve la longueur de la chaîne jusqu'à n caractères
+    char *dest = malloc(len + 1);
     if (dest == NULL) {
         goto error;
     }
@@ -84,7 +86,7 @@ char *extract_block(const char *line, int *start) {
         } else if (line[i] == '}') {
             brace_count--; // Accolade fermante
             if (brace_count == 0) {
-                break; // Fin du bloc trouvée
+                break; // Fin du bloc trouvé
             }
         }
     }

@@ -19,6 +19,6 @@ int evaluate_test(char *);
 
 if_info *handle_if_line(char *line);
 
-int execute_if(if_info *info); // useless ou à mettre ici (de fsh) ?
+int execute_if(if_info *info); // dans fsh.c
 
 #endif
