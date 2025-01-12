@@ -27,6 +27,14 @@
 #define GREEN "\001\033[32m\002"
 #define RED "\001\033[91m\002"
 #define CYAN "\001\033[36m\002"
+
+typedef struct {
+    char * cmd_line; 
+    bool is_pipeline; 
+    int input_fd; 
+    int output_fd;
+} command;
+
 int call_function (cmd_info *);
 void destroy_cmd(command **);
 
