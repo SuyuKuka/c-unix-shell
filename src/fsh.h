@@ -17,6 +17,7 @@
 #include "cd.h"
 #include "ftype.h"
 #include "externalcmd.h"
+#include "cmdutils.h"
 #include "for.h"
 #include "if.h"
 #include "redirection.h"
