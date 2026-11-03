@@ -4,20 +4,11 @@ SRC = src
 BUILD = build
 LIBS = -lreadline -lncurses
 
-all: makedir fsh
-
-# Création du répertoire build
-makedir:
-	mkdir -p $(BUILD)
+all: fsh
 
 # Compilation de l'exécutable fsh
 fsh:
 	$(CC) -o fsh $(SRC)/*.c $(LIBS)
-
-# Lancer le test
-test: 
-	$(CC) -o fsh $(SRC)/*.c $(LIBS)
-	./test.sh
 
 # Compiler et lancer le programme
 c:
@@ -31,5 +22,4 @@ valgrind:
 
 # Nettoyage des fichiers générés
 clean:
-	rm -f $(BUILD)/*.o fsh
-	rm -d $(BUILD)
+	rm -f fsh
